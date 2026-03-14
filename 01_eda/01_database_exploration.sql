@@ -1,0 +1,10 @@
+-- What tables exist in the database?
+
+SELECT *
+  FROM INFORMATION_SCHEMA.TABLES
+ WHERE TABLE_TYPE = 'BASE TABLE';
+
+-- How many tables are there in the database?
+SELECT COUNT(*) AS TOTAL_TABLES
+  FROM INFORMATION_SCHEMA.TABLES
+ WHERE TABLE_TYPE = 'BASE TABLE';
