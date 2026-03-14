@@ -10,9 +10,10 @@ SELECT COUNT(*) AS TOTAL_TABLES
  WHERE TABLE_TYPE = 'BASE TABLE';
 
 -- How many rows does each table have?
-SELECT
-    t.name,
-    SUM(p.rows) AS total_rows
-FROM sys.tables t
-INNER JOIN sys.partitions p
-WHERE p.index_id IN (0,1)
+SELECT T.NAME,
+       SUM(P.ROWS) AS TOTAL_ROWS
+  FROM SYS.TABLES T
+INNER JOIN SYS.PARTITIONS P
+ WHERE P.INDEX_ID IN ( 0,
+                       1 )
+ GROUP BY T.NAME;
