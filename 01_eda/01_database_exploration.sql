@@ -143,3 +143,17 @@ SELECT PRODUCT_ID
  GROUP BY PRODUCT_ID
 HAVING COUNT(*) > 1;
 -- product_id is the primary_key -> grain = one unique product
+
+SELECT REVIEW_ID,
+       ORDER_ID
+  FROM ORDER_REVIEWS
+ GROUP BY REVIEW_ID,
+          ORDER_ID
+HAVING COUNT(*) > 1;
+-- review_id, order_id is composite primary key -> grain = a unique order within a review
+
+SELECT SELLER_ID
+  FROM SELLERS
+ GROUP BY SELLER_ID
+HAVING COUNT(*) > 1;
+-- seller_id is the primary key -> grain = a unique seller
