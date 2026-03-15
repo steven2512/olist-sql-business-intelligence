@@ -130,19 +130,19 @@ SELECT ORDER_ID
   FROM ORDERS
  GROUP BY ORDER_ID
 HAVING COUNT(*) > 1;
--- order_id is the primary key -> grain = one unique order
+-- order_id is the primary key -> grain = one unique order per row
 
 SELECT CUSTOMER_ID
   FROM CUSTOMERS
  GROUP BY CUSTOMER_ID
 HAVING COUNT(*) > 1;
--- customer_id is the primary key -> grain = one unique customer
+-- customer_id is the primary key -> grain = one unique customer per row
 
 SELECT PRODUCT_ID
   FROM PRODUCTS
  GROUP BY PRODUCT_ID
 HAVING COUNT(*) > 1;
--- product_id is the primary_key -> grain = one unique product
+-- product_id is the primary_key -> grain = one unique product per row
 
 SELECT REVIEW_ID,
        ORDER_ID
@@ -150,10 +150,45 @@ SELECT REVIEW_ID,
  GROUP BY REVIEW_ID,
           ORDER_ID
 HAVING COUNT(*) > 1;
--- review_id, order_id is composite primary key -> grain = a unique order within a review
+-- review_id, order_id is composite primary key -> grain = a unique order within a review per row
 
 SELECT SELLER_ID
   FROM SELLERS
  GROUP BY SELLER_ID
 HAVING COUNT(*) > 1;
--- seller_id is the primary key -> grain = a unique seller
+-- seller_id is the primary key -> grain = a unique seller per row
+
+SELECT PRODUCT_CATEGORY_NAME
+  FROM PRODUCT_CATEGORY_NAME_TRANSLATION
+ GROUP BY PRODUCT_CATEGORY_NAME
+HAVING COUNT(*) > 1;
+-- product_category_name is primary key -> grain = one English translation of a product category per row
+
+SELECT ORDER_ID,
+       PAYMENT_SEQUENTIAL
+  FROM ORDER_PAYMENTS
+ GROUP BY ORDER_ID,
+          PAYMENT_SEQUENTIAL
+HAVING COUNT(*) > 1;
+-- order_id, payment_sequential is composite primary key -> grain = one part of the payment of an order
+
+SELECT GEOLOCATION_ZIP_CODE_PREFIX,
+       GEOLOCATION_LAT,
+       GEOLOCATION_LNG,
+       GEOLOCATION_CITY,
+       GEOLOCATION_STATE
+  FROM GEOLOCATION
+ GROUP BY GEOLOCATION_ZIP_CODE_PREFIX,
+          GEOLOCATION_LAT,
+          GEOLOCATION_LNG,
+          GEOLOCATION_CITY,
+          GEOLOCATION_STATE
+HAVING COUNT(*) > 1;
+
+--No candidate keys found -> table contain many rows duplicates
+-- 261831 exact duplicates out of 1000163 rows
+-- Some rows also have different accent of the city name, while every other column is identical
+-- This suggests that this dataset might possibly be imported from multiple sources (or an uncleaned source) and the author did not perform deduplications
+-- Also inconsistencies happened with 8 zip code prefixes (same prefix, but different states -> which is impossible in real world)
+-- Grain (originally intended): one district per zip code prefix
+-- Grain (actually is): one geographical sample point in a district per row - non unique
