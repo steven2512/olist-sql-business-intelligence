@@ -130,19 +130,19 @@ SELECT ORDER_ID
   FROM ORDERS
  GROUP BY ORDER_ID
 HAVING COUNT(*) > 1;
--- order_id is the primary key -> grain = one unique order per row
+-- order_id is the candidate key -> grain = one unique order per row
 
 SELECT CUSTOMER_ID
   FROM CUSTOMERS
  GROUP BY CUSTOMER_ID
 HAVING COUNT(*) > 1;
--- customer_id is the primary key -> grain = one unique customer per row
+-- customer_id is the candidate key -> grain = one unique customer per row
 
 SELECT PRODUCT_ID
   FROM PRODUCTS
  GROUP BY PRODUCT_ID
 HAVING COUNT(*) > 1;
--- product_id is the primary_key -> grain = one unique product per row
+-- product_id is the candidate key -> grain = one unique product per row
 
 SELECT REVIEW_ID,
        ORDER_ID
@@ -150,19 +150,19 @@ SELECT REVIEW_ID,
  GROUP BY REVIEW_ID,
           ORDER_ID
 HAVING COUNT(*) > 1;
--- review_id, order_id is composite primary key -> grain = a unique order within a review per row
+-- review_id, order_id is candidate key -> grain = a unique order within a review per row
 
 SELECT SELLER_ID
   FROM SELLERS
  GROUP BY SELLER_ID
 HAVING COUNT(*) > 1;
--- seller_id is the primary key -> grain = a unique seller per row
+-- seller_id is the candidate key -> grain = a unique seller per row
 
 SELECT PRODUCT_CATEGORY_NAME
   FROM PRODUCT_CATEGORY_NAME_TRANSLATION
  GROUP BY PRODUCT_CATEGORY_NAME
 HAVING COUNT(*) > 1;
--- product_category_name is primary key -> grain = one English translation of a product category per row
+-- product_category_name is candidate key -> grain = one English translation of a product category per row
 
 SELECT ORDER_ID,
        PAYMENT_SEQUENTIAL
@@ -170,7 +170,7 @@ SELECT ORDER_ID,
  GROUP BY ORDER_ID,
           PAYMENT_SEQUENTIAL
 HAVING COUNT(*) > 1;
--- order_id, payment_sequential is composite primary key -> grain = one part of the payment of an order
+-- order_id, payment_sequential is candidate key -> grain = one part of the payment of an order
 
 SELECT GEOLOCATION_ZIP_CODE_PREFIX,
        GEOLOCATION_LAT,
@@ -192,3 +192,12 @@ HAVING COUNT(*) > 1;
 -- Also inconsistencies happened with 8 zip code prefixes (same prefix, but different states -> which is impossible in real world)
 -- Grain (originally intended): one district per zip code prefix
 -- Grain (actually is): one geographical sample point in a district per row - non unique
+
+SELECT ORDER_ID,
+       ORDER_ITEM_ID
+  FROM ORDER_ITEMS
+ GROUP BY ORDER_ID,
+          ORDER_ITEM_ID
+HAVING COUNT(*) > 1;
+--order_id, order_item_id is candidate key 
+-- grain: unknown as I have found no logical reason for the same exact item within an order to have same seller, same weight, freight_cost, same shipping limit date yet having different rows (order_item_id context is unknown, needs further analysis to fully confirm)
