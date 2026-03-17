@@ -224,6 +224,11 @@ SELECT MAX(ORDER_PURCHASE_TIMESTAMP) AS MOST_RECENT_PURCHASE_DATE,
   FROM ORDERS;
 -- purchases ranges from 4th Sep, 2016 -> 17th Oct, 2018 spanning 773 days OR 25 months OR 2 yea (rounded up)
 
+SELECT MAX(ORDER_DELIVERED_CUSTOMER_DATE)
+  FROM ORDERS
+ WHERE LOWER(ORDER_STATUS) = 'delivered';
+-- the last order that was successfully delivered was delivered to the customer on 17th Oct, 2018
+
 -- order_items
 SELECT MAX(SHIPPING_LIMIT_DATE) AS MOST_RECENT,
        MIN(SHIPPING_LIMIT_DATE) AS OLDEST,
