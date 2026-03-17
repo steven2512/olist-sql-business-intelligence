@@ -199,5 +199,48 @@ SELECT ORDER_ID,
  GROUP BY ORDER_ID,
           ORDER_ITEM_ID
 HAVING COUNT(*) > 1;
---order_id, order_item_id is candidate key 
--- grain: unknown as I have found no logical reason for the same exact item within an order to have same seller, same weight, freight_cost, same shipping limit date yet having different rows (order_item_id context is unknown, needs further analysis to fully confirm)
+-- order_id, order_item_id is candidate key 
+-- grain: an individual unit of an item within an order (as a combination of all columns except order_item_id does not uniquely identify the rows)
+
+-- 5. What is the date range of the data
+--orders
+SELECT MAX(ORDER_PURCHASE_TIMESTAMP) AS MOST_RECENT_PURCHASE_DATE,
+       MIN(ORDER_PURCHASE_TIMESTAMP) AS OLDEST_PURCHASE_DATE,
+       DATEDIFF(
+          DAY,
+          MIN(ORDER_PURCHASE_TIMESTAMP),
+          MAX(ORDER_PURCHASE_TIMESTAMP)
+       ) AS DIFF_DAYS,
+       DATEDIFF(
+          MONTH,
+          MIN(ORDER_PURCHASE_TIMESTAMP),
+          MAX(ORDER_PURCHASE_TIMESTAMP)
+       ) AS DIFF_MONTHS,
+       DATEDIFF(
+          YEAR,
+          MIN(ORDER_PURCHASE_TIMESTAMP),
+          MAX(ORDER_PURCHASE_TIMESTAMP)
+       ) AS DIFF_YEARS
+  FROM ORDERS;
+-- purchases ranges from 4th Sep, 2016 -> 17th Oct, 2018 spanning 773 days OR 25 months OR 2 yea (rounded up)
+
+-- order_items
+SELECT MIN(SHIPPING_LIMIT_DATE) AS OLDEST,
+       MAX(SHIPPING_LIMIT_DATE) AS MOST_RECENT,
+       DATEDIFF(
+          DAY,
+          MIN(SHIPPING_LIMIT_DATE),
+          MAX(SHIPPING_LIMIT_DATE)
+       ) AS DIFF_DAYS,
+       DATEDIFF(
+          MONTH,
+          MIN(SHIPPING_LIMIT_DATE),
+          MAX(SHIPPING_LIMIT_DATE)
+       ) AS DIFF_MONTHS,
+       DATEDIFF(
+          YEAR,
+          MIN(SHIPPING_LIMIT_DATE),
+          MAX(SHIPPING_LIMIT_DATE)
+       ) AS DIFF_YEARS
+  FROM ORDER_ITEMS;
+--shipping_limit_date of item within an orde ranges from 19th Sep,2020 -> 4th Sep, 2020 spanning 1298 days OR 43 months OR 4 years (rounded up)
