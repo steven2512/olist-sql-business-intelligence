@@ -125,7 +125,7 @@ SELECT TABLE_NAME,
 -- sellers	seller_city	nvarchar
 -- sellers	seller_state	nvarchar
 
--- 4. What are the grains of the tables?
+-- 6. What are the grains of the tables?
 SELECT ORDER_ID
   FROM ORDERS
  GROUP BY ORDER_ID
@@ -202,7 +202,7 @@ HAVING COUNT(*) > 1;
 -- order_id, order_item_id is candidate key 
 -- grain: an individual unit of an item within an order
 
--- 5. What is the date range of the data
+-- 7. What is the date range of the data
 --orders
 SELECT MAX(ORDER_PURCHASE_TIMESTAMP) AS MOST_RECENT_PURCHASE_DATE,
        MIN(ORDER_PURCHASE_TIMESTAMP) AS OLDEST_PURCHASE_DATE,
@@ -272,7 +272,7 @@ SELECT MAX(REVIEW_CREATION_DATE) AS MOST_RECENT_REVIEW_DATE,
 -- review_creation_date ranges from 2th Oct, 2016 to 31st Aug, 2018 spanning 698 days OR 22 months OR 2 years (rounded up)
 
 
--- 6. How are the tables connected to each other
+-- 8. How are the tables connected to each other
 SELECT TABLE_NAME,
        COLUMN_NAME
   FROM INFORMATION_SCHEMA.COLUMNS
