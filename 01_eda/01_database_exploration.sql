@@ -1,3 +1,4 @@
+USE Olist;
 -- 1. What tables exist in the database?
 SELECT *
   FROM INFORMATION_SCHEMA.TABLES
