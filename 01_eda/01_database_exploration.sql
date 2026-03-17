@@ -200,7 +200,7 @@ SELECT ORDER_ID,
           ORDER_ITEM_ID
 HAVING COUNT(*) > 1;
 -- order_id, order_item_id is candidate key 
--- grain: an individual unit of an item within an order (as a combination of all columns except order_item_id does not uniquely identify the rows)
+-- grain: an individual unit of an item within an order
 
 -- 5. What is the date range of the data
 --orders
@@ -225,8 +225,8 @@ SELECT MAX(ORDER_PURCHASE_TIMESTAMP) AS MOST_RECENT_PURCHASE_DATE,
 -- purchases ranges from 4th Sep, 2016 -> 17th Oct, 2018 spanning 773 days OR 25 months OR 2 yea (rounded up)
 
 -- order_items
-SELECT MIN(SHIPPING_LIMIT_DATE) AS OLDEST,
-       MAX(SHIPPING_LIMIT_DATE) AS MOST_RECENT,
+SELECT MAX(SHIPPING_LIMIT_DATE) AS MOST_RECENT,
+       MIN(SHIPPING_LIMIT_DATE) AS OLDEST,
        DATEDIFF(
           DAY,
           MIN(SHIPPING_LIMIT_DATE),
@@ -243,4 +243,59 @@ SELECT MIN(SHIPPING_LIMIT_DATE) AS OLDEST,
           MAX(SHIPPING_LIMIT_DATE)
        ) AS DIFF_YEARS
   FROM ORDER_ITEMS;
---shipping_limit_date of item within an orde ranges from 19th Sep,2020 -> 4th Sep, 2020 spanning 1298 days OR 43 months OR 4 years (rounded up)
+--shipping_limit_date of item within an order ranges from 19th Sep,2016 -> 9th April, 2020 spanning 1298 days OR 43 months OR 4 years (rounded up)
+
+-- order_reviews
+SELECT MAX(REVIEW_CREATION_DATE) AS MOST_RECENT_REVIEW_DATE,
+       MIN(REVIEW_CREATION_DATE) AS OLDEST_REVIEW_DATE,
+       DATEDIFF(
+          DAY,
+          MIN(REVIEW_CREATION_DATE),
+          MAX(REVIEW_CREATION_DATE)
+       ) AS DIFF_DAYS,
+       DATEDIFF(
+          MONTH,
+          MIN(REVIEW_CREATION_DATE),
+          MAX(REVIEW_CREATION_DATE)
+       ) AS DIFF_MONTHS,
+       DATEDIFF(
+          YEAR,
+          MIN(REVIEW_CREATION_DATE),
+          MAX(REVIEW_CREATION_DATE)
+       ) AS DIFF_YEARS
+  FROM ORDER_REVIEWS;
+-- review_creation_date ranges from 2th Oct, 2016 to 31st Aug, 2018 spanning 698 days OR 22 months OR 2 years (rounded up)
+
+
+-- 6. How are the tables connected to each other
+SELECT TABLE_NAME,
+       COLUMN_NAME
+  FROM INFORMATION_SCHEMA.COLUMNS
+ WHERE COLUMN_NAME IN (
+   SELECT COLUMN_NAME
+     FROM INFORMATION_SCHEMA.COLUMNS
+    GROUP BY COLUMN_NAME
+   HAVING COUNT(*) > 1
+)
+ ORDER BY COLUMN_NAME;
+-- Output:
+-- customers	customer_id
+-- orders	customer_id
+-- orders	order_id
+-- order_items	order_id
+-- order_reviews	order_id
+-- order_payments	order_id
+-- product_category_name_translation	product_category_name
+-- products	product_category_name
+-- products	product_id
+-- order_items	product_id
+-- sellers	seller_id
+-- order_items	seller_id
+
+--Findings:
+-- Relationships found between tables:
+-- customers <-> orders
+-- orders <-> order_items, reviews, payments
+-- products <-> product_translation, order_items
+-- sellers <-> items
+-- special case: geolocation -> customers, sellers via geolocation_zip_code_prefix, customer_zip_code_prefix and seller_zip_code_prefix (different column names)
