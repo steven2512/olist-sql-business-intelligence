@@ -1,3 +1,9 @@
+## Session 6 — 18 Mar 2026
+- Finalised `01_database_exploration.sql` and began `02_data_quality.sql`
+- Built dynamic stored procedures `sp_null_counter` and `duplicate_counts` 
+  for null and duplicate detection across all tables
+- Documented findings for both checks
+
 ## Session 5 — 17 Mar 2026
 - Added date range analysis for `orders`, `order_items`, and `order_reviews`
 - Resolved outstanding issues in `01_database_exploration.sql`
