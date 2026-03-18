@@ -5,7 +5,6 @@ GO
 -- Build a procedure that displays null counts for each column of each table
 CREATE OR ALTER PROCEDURE sp_null_counter AS
 BEGIN
-	DROP TABLE IF EXISTS null_count_result;
 	DECLARE @querry NVARCHAR(MAX)
 	SELECT
 		@querry = STRING_AGG(CAST(
@@ -34,7 +33,7 @@ END
 GO
 
 EXEC sp_null_counter
-
+GO
 --Output:
 -- order_reviews	review_comment_title	87658
 -- order_reviews	review_comment_message	58256
@@ -96,6 +95,52 @@ EXEC sp_null_counter
 -- 160 orders were never approved or have yet to be approved
 -- 610 products seems to be missing critical info: category_name, photo, and name, description length
 -- 2 products are missing dimentions like height, length, weight, width
+
+
+-- 2. How many duplicate rows are there in each table?
+
+CREATE OR ALTER PROCEDURE duplicate_counts
+AS
+BEGIN
+	DECLARE @querry NVARCHAR(MAX)
+	SELECT
+		@querry = STRING_AGG(
+			'SELECT '
+			+ '''' 
+			+ table_name
+			+ ''''
+			+ ' AS table_name' 
+			+ ', '
+			+ 'COUNT(*) - (SELECT COUNT(*) FROM (SELECT DISTINCT * FROM '
+			+ table_name
+			+ ') t ) AS duplicate_counts FROM '
+			+ table_name
+			, ' UNION ALL ') 
+			+ ' ORDER BY duplicate_counts DESC'
+	FROM information_schema.tables
+	WHERE TABLE_TYPE = 'BASE TABLE'
+	
+	EXEC sp_executesql @querry
+
+END
+GO
+EXEC duplicate_counts
+
+--Findings: geolocation is the only table with duplicate rows
+--output
+-- geolocation	261831
+-- customers	0
+-- order_items	0
+-- order_payments	0
+-- order_reviews	0
+-- orders	0
+-- product_category_name_translation	0
+-- products	0
+-- sellers	0
+
+
+
+
 
 
 
