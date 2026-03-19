@@ -1,3 +1,9 @@
+## Session 7 — 19 Mar 2026
+- Completed '02_data_quality.sql' with all remaining checks
+- Built dynamic stored procedures negative_checks and zero_checks for negative and zero value detection across all columns of all tables
+- Added consistency, sequential integrity, and referential integrity checks
+- Added discrete domain checks on categorical columns across all tables
+
 ## Session 6 — 18 Mar 2026
 - Finalised `01_database_exploration.sql` and began `02_data_quality.sql`
 - Built dynamic stored procedures `sp_null_counter` and `duplicate_counts` 
