@@ -254,6 +254,62 @@ WHERE NOT (
 -- output: 2686
 -- Findings: 2686 orders have incorrect chronoglocial orders of timestamps (excluded NULL timestamps which might have a valid reason)
 
+-- Identifying gaps in sequential columns
+-- order_items have order_item_id which is supposed to be sequentaial for each order_id
+SELECT COUNT(*) AS order_item_gap_counts
+FROM 
+(SELECT
+	order_id
+FROM order_items
+GROUP BY order_id
+HAVING SUM(CAST(order_item_id AS INT))
+      != COUNT(*) * (COUNT(*) + 1) /2 ) t;
+--approach: sum of the group of n integers = sum of the arithemetic series must hold to have no gaps
+
+--output: 0 - no gaps found in any of the order_id, order_item_id combination
+
+--order_payments have payment_sequential which is supposed to be sequential for each order_id
+SELECT COUNT(*) AS order_payment_gap_counts
+FROM 
+(SELECT
+	order_id
+FROM order_payments
+GROUP BY order_id
+HAVING SUM(CAST(payment_sequential AS INT))
+	!= COUNT(*) * (COUNT(*) +1) / 2 ) p;
+
+--Findings: suprisingly, 80 orders have gaps in the numbering of the payment parts. 
+
+SELECT
+	min_sequential_numbering,
+	max_sequential_numbering,
+	COUNT(*) AS total
+FROM
+(SELECT
+	order_id,
+	MIN(payment_sequential) AS min_sequential_numbering,
+	MAX(payment_sequential) AS max_sequential_numbering
+FROM
+(SELECT
+	t.order_id,
+	o.payment_sequential
+FROM order_payments o
+INNER JOIN
+(SELECT
+	order_id
+FROM order_payments
+GROUP BY order_id
+HAVING SUM(CAST(payment_sequential AS INT))
+	!= COUNT(*) * (COUNT(*) +1) / 2
+) t	
+ON o.order_id = t.order_id) p
+GROUP BY order_id) g
+GROUP BY min_sequential_numbering, max_sequential_numbering;
+
+-- Further analysis shows that 78/80 orders have a single payment part numbering at 2 
+-- 2/80 have 2 payment parts starting at 2 and ends at 3
+
+
 
 
 
