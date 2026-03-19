@@ -306,12 +306,88 @@ ON o.order_id = t.order_id) p
 GROUP BY order_id) g
 GROUP BY min_sequential_numbering, max_sequential_numbering;
 
--- Further analysis shows that 78/80 orders have a single payment part numbering at 2 
--- 2/80 have 2 payment parts starting at 2 and ends at 3
+-- Further analysis shows that 78/80 orders have a single payment part numbering at 2
+-- 2/80 have 2 payment parts starting at 2 and ending at 3
+-- however almost every other payment starts at 1, which suggests missing or inconsistent numbering
 
+-- 4. Referrential Integrity
 
+--customer_id in customers and orders
+SELECT * FROM INFORMATION_SCHEMA.columns
 
+SELECT
+	*
+FROM orders o
+LEFT JOIN customers c
+ON o.customer_id = c.customer_id
+WHERE c.customer_id IS NULL
 
+--order_id in order_payments, order_reviews, and order_items
+ SELECT p.order_id
+ FROM order_payments p
+ LEFT JOIN orders o
+ ON p.order_id = o.order_id
+ WHERE o.order_id IS NULL
+ 
+ UNION ALL
+ SELECT r.order_id
+ FROM order_reviews r
+ LEFT JOIN orders o
+ ON r.order_id = o.order_id
+ WHERE o.order_id IS NULL
+ 
+ UNION ALL
+ SELECT i.order_id
+ FROM order_items i
+ LEFT JOIN orders o
+ ON i.order_id = o.order_id
+ WHERE o.order_id IS NULL
+
+--product_category_name inproducts and product_category_name_translation
+SELECT
+    *
+FROM product_category_name_translation t
+LEFT JOIN products p
+ON t.product_category_name = p.product_category_name
+WHERE p.product_category_name IS NULL
+
+--prdouct_id in products and order_items
+SELECT
+    *
+FROM order_items i
+LEFT JOIN products p
+ON i.product_id = p.product_id
+WHERE p.product_id IS NULL
+
+--seller_id in sellers and order_items
+
+SELECT
+    *
+FROM order_items i
+LEFT JOIN sellers s
+ON i.seller_id = s.seller_id
+WHERE s.seller_id IS NULL
+
+-- zip_code_prefix, seller_zip_code_prefix, customer_zip_code_prefix in geolocation, customers, and sellers
+SELECT COUNT(*) AS total
+FROM sellers s
+LEFT JOIN geolocation g
+ON s.seller_zip_code_prefix = g.geolocation_zip_code_prefix
+WHERE g.geolocation_zip_code_prefix IS NULL
+
+SELECT COUNT(*) AS total
+FROM customers c
+LEFT JOIN geolocation g
+ON c.customer_zip_code_prefix = g.geolocation_zip_code_prefix
+WHERE g.geolocation_zip_code_prefix IS NULL
+-- total of 7 sellers have zip code prefix that does not exist in geolocation
+-- total 278 customers have zip code prefix that does not exist in geolocation
+
+--Findings: all referecing columns in child table have a matching records in their parents table except for zip code prefix from customers and sellers to the parent table of geolocation
+
+-- Notice: 'foreign keys' words are not used here since technically we imported flat files and no relationships were defined like in a formal database
+-- All relationships here are inffered based on experienc and basic intuition
+ 
 
 
 
