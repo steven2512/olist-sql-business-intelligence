@@ -233,6 +233,28 @@ EXEC zero_checks
 -- Findings: Interestingly, there are 9 order_payments that has a value of 0, and 4 products weigh 0g
 -- Freight value of 0 could be explained by sellers offering free shippings.
 
+-- 3.3 Consistency
+--Chronological Orders Of timestamps in reviews
+SELECT COUNT(*) FROM order_reviews
+WHERE review_creation_date >= review_answer_timestamp;
+-- output: 0
+-- all review timestamps make sense (creation before answer)
+
+--Chronological Orders of timestamps in orders
+SELECT COUNT(*) AS incorrect_timestamp_orders
+FROM orders
+WHERE NOT (
+	 order_purchase_timestamp
+	  < order_approved_at 
+	 AND order_approved_at 
+	  < order_delivered_carrier_date
+	 AND order_delivered_carrier_date 
+	  < order_delivered_customer_date
+	 );
+-- output: 2686
+-- Findings: 2686 orders have incorrect chronoglocial orders of timestamps (excluded NULL timestamps which might have a valid reason)
+
+
 
 
 
