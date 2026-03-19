@@ -125,8 +125,8 @@ BEGIN
 END
 GO
 EXEC duplicate_counts
-
---Findings: geolocation is the only table with duplicate rows
+GO
+--Findings: geolocation is the only table with duplicate rows (already reported in file 01_database_exploration)
 --output
 -- geolocation	261831
 -- customers	0
@@ -137,6 +137,101 @@ EXEC duplicate_counts
 -- product_category_name_translation	0
 -- products	0
 -- sellers	0
+
+-- 3. Do the values make sense?
+-- 3.1 stored procedure to find out all negative values of all numerical columns
+CREATE OR ALTER PROCEDURE negative_checks
+AS
+BEGIN
+	DECLARE	@querry NVARCHAR(MAX)
+
+	SELECT 
+		@querry = STRING_AGG('SELECT '
+		+ ''''
+		+ table_name
+		+ ''' AS table_name, '
+		+ ''''
+		+ column_name
+		+ ''' AS column_name, '
+		+ 'COUNT(*) AS negative_counts FROM '
+		+ table_name
+		+ ' WHERE '
+		+ column_name
+		+ ' < 0'
+		, ' UNION ALL ') + ' ORDER BY negative_counts DESC'
+	FROM INFORMATION_SCHEMA.columns
+	WHERE NUMERIC_PRECISION IS NOT NULL
+	EXEC sp_executesql @querry
+END
+GO
+
+EXEC negative_checks
+GO
+
+--Output:
+-- geolocation	geolocation_lng	1000160
+-- geolocation	geolocation_lat	998827
+-- customers	customer_zip_code_prefix	0
+-- geolocation	geolocation_zip_code_prefix	0
+-- order_items	freight_value	0
+-- order_items	price	0
+-- order_payments	payment_value	0
+-- products	product_description_lenght	0
+-- products	product_height_cm	0
+-- products	product_length_cm	0
+-- products	product_name_lenght	0
+-- products	product_weight_g	0
+-- products	product_width_cm	0
+-- sellers	seller_zip_code_prefix	0
+
+--Findings: only geolocation lat and lng has negative values which is already expected, others have no impossible values.
+
+-- 3.2 Zero checks for all columns
+CREATE OR ALTER PROCEDURE zero_checks
+AS
+BEGIN
+	DECLARE	@querry NVARCHAR(MAX)
+
+	SELECT 
+		@querry = STRING_AGG('SELECT '
+		+ ''''
+		+ table_name
+		+ ''' AS table_name, '
+		+ ''''
+		+ column_name
+		+ ''' AS column_name, '
+		+ 'COUNT(*) AS zero_counts FROM '
+		+ table_name
+		+ ' WHERE '
+		+ column_name
+		+ ' = 0'
+		, ' UNION ALL ') + ' ORDER BY zero_counts DESC'
+	FROM INFORMATION_SCHEMA.columns
+	WHERE NUMERIC_PRECISION IS NOT NULL
+	EXEC sp_executesql @querry
+END
+GO
+
+EXEC zero_checks
+
+--Output:
+-- order_items	freight_value	383
+-- order_payments	payment_value	9
+-- products	product_weight_g	4
+-- customers	customer_zip_code_prefix	0
+-- geolocation	geolocation_lat	0
+-- geolocation	geolocation_lng	0
+-- geolocation	geolocation_zip_code_prefix	0
+-- order_items	price	0
+-- products	product_description_lenght	0
+-- products	product_height_cm	0
+-- products	product_length_cm	0
+-- products	product_name_lenght	0
+-- products	product_width_cm	0
+-- sellers	seller_zip_code_prefix	0
+
+-- Findings: Interestingly, there are 9 order_payments that has a value of 0, and 4 products weigh 0g
+-- Freight value of 0 could be explained by sellers offering free shippings.
 
 
 

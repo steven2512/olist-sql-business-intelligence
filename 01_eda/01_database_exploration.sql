@@ -271,6 +271,7 @@ SELECT MAX(REVIEW_CREATION_DATE) AS MOST_RECENT_REVIEW_DATE,
        ) AS DIFF_YEARS
   FROM ORDER_REVIEWS;
 -- review_creation_date ranges from 2th Oct, 2016 to 31st Aug, 2018 spanning 698 days OR 22 months OR 2 years (rounded up)
+-- latest review_answer_timestamp is 29th Oct, 2018, and earliest ansewr is 7th Oct, 2016
 
 
 -- 8. How are the tables connected to each other
