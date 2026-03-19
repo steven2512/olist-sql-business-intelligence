@@ -387,6 +387,28 @@ WHERE g.geolocation_zip_code_prefix IS NULL
 
 -- Notice: 'foreign keys' words are not used here since technically we imported flat files and no relationships were defined like in a formal database
 -- All relationships here are inffered based on experienc and basic intuition
+
+-- customer_state, payment_type
+SELECT 
+	payment_type,
+	COUNT(*) AS total
+FROM order_payments
+GROUP BY payment_type;
+-- 3 payments have type not_defined, which is unusual
+
+SELECT
+	review_score,
+	COUNT(*) AS total
+FROM order_reviews
+GROUP BY review_score
+-- review scores contains 1 -> 5 which is expected
+
+SELECT
+	order_status,
+	COUNT(*) AS total
+FROM orders
+GROUP BY order_status
+-- all 8 order status makes sense
  
 
 
