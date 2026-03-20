@@ -7,7 +7,7 @@ FROM orders;
 
 SELECT COUNT(DISTINCT customer_unique_id)
 FROM customers;
--- findings: 96096 customers
+-- findings: 96096 unique customers
 
 SELECT COUNT(*) AS total_sellers
 FROM sellers;
