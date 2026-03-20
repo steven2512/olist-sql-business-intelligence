@@ -137,7 +137,7 @@ SELECT CUSTOMER_ID
   FROM CUSTOMERS
  GROUP BY CUSTOMER_ID
 HAVING COUNT(*) > 1;
--- customer_id is the candidate key -> grain = one unique customer per row
+-- customer_id is the candidate key -> grain = one unique row for one order of a specific one customer (technically still stores the customer data, but for 1 order they purchase they get a new row in both customers table and orders table)
 
 SELECT PRODUCT_ID
   FROM PRODUCTS

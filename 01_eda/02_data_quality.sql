@@ -322,6 +322,16 @@ LEFT JOIN customers c
 ON o.customer_id = c.customer_id
 WHERE c.customer_id IS NULL
 
+SELECT * FROM customers c
+LEFT JOIN orders o
+ON c.customer_id = o.customer_id
+WHERE o.customer_id IS NULL
+
+SELECT * FROM customers
+WHERE customer_id IS NULL
+
+-- interesting findings: every single customer in customers table have placed at least an order, and based on findings in file 01_database_exploration and documentation from Olist, every row is an order participant (could be same customer) so anyone who hasn't placed any order would not be included in the table at all.
+
 --order_id in order_payments, order_reviews, and order_items
  SELECT p.order_id
  FROM order_payments p
