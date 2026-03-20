@@ -24,3 +24,24 @@ ON o.order_id = i.order_id
 WHERE LOWER(o.order_status) = 'delivered';
 -- findings: 32216 products have been sold (based only on orders that has been delivered)
 
+-- 2. Revenue Snapshot
+-- Calculate GMV (Gross Merchandise Value - all money that actually flows through Olist)
+SELECT SUM(payment_value) AS total_revenue
+FROM orders o
+INNER JOIN order_payments i
+ON o.order_id = i.order_id
+WHERE LOWER(o.order_status) = 'delivered';
+-- GMV: 15422461.769998817
+
+SELECT AVG(order_value) FROM
+(SELECT
+    o.order_id,
+    SUM(payment_value) AS order_value
+FROM orders o  
+INNER JOIN order_payments i  
+ON o.order_id = i.order_id
+WHERE LOWER(order_status) = 'delivered'
+GROUP BY o.order_id) v
+-- Average order value ~ 159.86
+
+

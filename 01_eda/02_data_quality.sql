@@ -310,6 +310,24 @@ GROUP BY min_sequential_numbering, max_sequential_numbering;
 -- 2/80 have 2 payment parts starting at 2 and ending at 3
 -- however almost every other payment starts at 1, which suggests missing or inconsistent numbering
 
+-- order and order_items
+SELECT order_status, COUNT(*) AS total FROM orders o
+LEFT JOIN order_items i  
+ON o.order_id = i.order_id
+WHERE i.order_id IS NULL
+GROUP BY order_status
+
+
+SELECT order_status, COUNT(*) AS total FROM orders o
+INNER JOIN order_items i
+ON o.order_id = i.order_id
+GROUP BY order_status;
+
+-- For orders that never appeared in order_items, most are marked 'unavailable' or 'canceled'. With 'created', 'invoiced' included, which might make sense since maybe order_items hasn't been updated (1). 
+-- However there is 1 'shipped' which is a pretty late stage of an order, yet doesn't appear in order_items
+-- Most of orders that does match in order_items are delivered. But a lot of them also included 'canceled' and some 'unavailable', and even some 'approved' or 'invoiced' (which contradicts with point number (1) ).
+-- It's inconsistent regarding criteria of how an order would or would not be included in order_items 
+
 -- 4. Referrential Integrity
 
 --customer_id in customers and orders
