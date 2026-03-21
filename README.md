@@ -8,37 +8,23 @@ Built with Microsoft SQL Server.
 ---
 
 ## Project Status
-🔄 In Progress — EDA Phase
+In Progress - EDA Phase
 
 ---
 
-## Analytical Perspective & Key Assumptions
+## Assumptions and Definitions
 
-> **Read this before interpreting any metrics or revenue figures in this project.**
+> Read this before interpreting any figures in this project.
 
-### Perspective
-This analysis is conducted from the perspective of **Olist as the marketplace operator**. All metrics, interpretations, and recommendations are framed around what Olist — as the platform — can influence, incentivize, or act upon. The goal is to provide actionable business intelligence to help Olist maximise platform revenue, identify growth opportunities across product categories and regions, and improve seller and customer retention.
+**Perspective:** All analysis is framed around what Olist as the marketplace operator can influence, incentivise, or act upon.
 
-### GMV Definition
-GMV is defined as **total customer payment value per delivered order, inclusive of freight**. This aligns with how Olist calculated commission during the dataset period (September 2016 – October 2018).
+**GMV / Revenue:** Throughout this project, GMV is defined as total customer payment value per delivered order, inclusive of freight. GMV and revenue are used interchangeably. Source column: `payment_value` (payments table).
 
-| Metric | Definition | Source Column(s) |
-|---|---|---|
-| GMV | Total customer payment value per delivered order, inclusive of freight | `payment_value` (payments table) |
-| Olist Estimated Revenue | GMV × effective commission rate (~20% midpoint) | Derived |
-| Freight Value | Shipping cost component, included in GMV | `freight_value` (order_items table) |
-| Pure Product Value | Item price declared by seller, excluding freight | `price` (order_items table) |
+**Commission rate:** During the dataset period (Sep 2016 to Oct 2018), Olist's commission covered partner marketplace fees (~18%) plus its own operational margin (3% to 5%), applied to the full order value including freight. This project uses a conservative midpoint of **~20%** as the effective commission rate.
 
-### Commission Rate
-Olist's commission during the dataset period covered partner marketplace fees (~18%) plus Olist's own operational margin (3%–5%), resulting in an effective total rate of approximately **19%–23% of GMV (product + freight combined)**. A conservative midpoint of **~20%** is used in this analysis where commission estimation is required.
+> The 10% figure commonly cited in Kaggle notebooks is not supported by Olist's official documentation and is not used here.
 
-> ⚠️ The commonly cited **10% commission figure** found in Kaggle notebooks and community analyses is likely a significant underestimate and does not appear to be supported by Olist's official documentation. It should not be used for revenue estimation.
-
-### Commission Model Changed in February 2021 (Post-Dataset)
-Olist restructured their fee model after the dataset period ended. From February 16, 2021 onwards, commission applies to **product value only** (freight excluded), and a tiered structure was introduced. This project does not apply the post-2021 model, as the dataset pre-dates that change.
-
-### Scope
-Analysis covers **confirmed and successfully delivered orders only**. Cancelled, unavailable, or undelivered orders are excluded from all revenue and GMV calculations.
+**Scope:** Confirmed and successfully delivered orders only. Cancelled, unavailable, or undelivered orders are excluded from all calculations.
 
 ---
 
