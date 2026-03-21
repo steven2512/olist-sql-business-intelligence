@@ -1,6 +1,6 @@
 USE Olist;
 
--- 1. Volume counts
+-- 1. Platform Scale
 SELECT COUNT(*) AS total_orders 
 FROM orders;
 -- findings: total 99441 orders
@@ -24,8 +24,12 @@ ON o.order_id = i.order_id
 WHERE LOWER(o.order_status) = 'delivered';
 -- findings: 32216 products have been sold (based only on orders that has been delivered)
 
--- 2. Revenue Snapshot
--- Calculate GMV (Gross Merchandise Value - all money that actually flows through Olist)
+SELECT DISTINCT product_category_name
+FROM products
+GROUP BY product_category_name;
+--findings: total of 74 different categories of products
+
+-- Calculate GMV (Gross Merchandise Value)
 SELECT SUM(payment_value) AS total_revenue
 FROM orders o
 INNER JOIN order_payments i
@@ -43,5 +47,45 @@ ON o.order_id = i.order_id
 WHERE LOWER(order_status) = 'delivered'
 GROUP BY o.order_id) v
 -- Average order value ~ 159.86
+
+-- 2. Operational Health
+SELECT 
+    ROUND(CAST(COUNT(*) AS FLOAT) / (SELECT COUNT(*) FROM orders) * 100, 2) AS delivered_fraction 
+FROM orders
+WHERE LOWER(order_status) = 'delivered'
+-- ~97% of orders were succesfully delivered
+
+SELECT 
+    ROUND(AVG(CAST(review_score AS FLOAT)), 2) AS avg_review_score 
+FROM order_reviews;
+-- average review rating of 4.09 / 5
+
+SELECT * FROM orders;
+
+SELECT AVG(DATEDIFF(day, order_purchase_timestamp, order_delivered_customer_date)) AS avg_delivery_days
+FROM orders
+WHERE LOWER(order_status) = 'delivered' AND order_purchase_timestamp < order_delivered_customer_date;
+-- average delivery time is 12 days
+
+SELECT DISTINCT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY DATEDIFF(day, order_purchase_timestamp, order_delivered_customer_date)) OVER () AS avg_delivery_days
+FROM orders
+WHERE LOWER(order_status) = 'delivered' AND order_purchase_timestamp < order_delivered_customer_date;
+-- median delivery time is 10 days
+
+SELECT 
+    ROUND(SUM(freight_value) / 
+    (
+        SELECT SUM(payment_value) AS total_revenue
+        FROM orders o
+        INNER JOIN order_payments i
+        ON o.order_id = i.order_id
+        WHERE LOWER(o.order_status) = 'delivered'
+    ) * 100 , 2) AS freight_to_gmv
+FROM orders o  
+INNER JOIN order_items i
+ON o.order_id = i.order_id
+WHERE LOWER(o.order_status) = 'delivered'
+-- 14.25% of GMV is freight_value
+
 
 
