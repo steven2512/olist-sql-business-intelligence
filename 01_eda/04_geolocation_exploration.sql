@@ -13,6 +13,10 @@ SELECT GEOLOCATION_ZIP_CODE_PREFIX,
           GEOLOCATION_STATE
 HAVING COUNT(*) > 1;
 
+SELECT 
+COUNT(DISTINCT geolocation_zip_code_prefix)
+FROM geolocation
+-- There are 19015 distinct geographic units exist
 --No candidate keys found -> table contain many rows duplicates
 -- 261831 exact duplicates out of 1000163 rows
 -- Some rows also have different accent of the city name, while every other column is identical
@@ -77,4 +81,54 @@ GROUP BY z.geolocation_state
 ORDER BY total DESC;
 -- Findings: Roughly 59% of all sellers are located in SP (Sao Paulo) (1814 sellers). 
 -- SP and PR alone acounts for over 70% of all sellers
+
+SELECT DISTINCT   
+    z.geolocation_state
+FROM customers c  
+INNER JOIN #zip_code_and_state z
+ON c.customer_zip_code_prefix = z.geolocation_zip_code_prefix
+
+LEFT JOIN
+(SELECT DISTINCT  
+    geolocation_state
+FROM sellers s  
+INNER JOIN #zip_code_and_state z  
+ON s.seller_zip_code_prefix = z.geolocation_zip_code_prefix) t
+ON z.geolocation_state = t.geolocation_state
+WHERE t.geolocation_state IS NULL
+;
+-- Findings: There are 5 states that has orders yet there are 0 sellers located in those states
+
+SELECT DISTINCT  
+    z.geolocation_state
+FROM sellers s  
+INNER JOIN #zip_code_and_state z  
+ON s.seller_zip_code_prefix = z.geolocation_zip_code_prefix
+
+LEFT JOIN
+(SELECT DISTINCT   
+    z.geolocation_state
+FROM customers c  
+INNER JOIN #zip_code_and_state z
+ON c.customer_zip_code_prefix = z.geolocation_zip_code_prefix) t
+ON z.geolocation_state = t.geolocation_state
+WHERE t.geolocation_state IS NULL;
+-- Findings: On the other hand, there exists customers in every state that has sellers.
+
+SELECT
+    cross_region_flag,
+    COUNT(*) AS total,
+    ROUND(CAST (COUNT(*) AS FLOAT)/ SUM(COUNT(*)) OVER () * 100 , 2) AS proportion
+FROM (
+    SELECT
+        CASE WHEN zc.geolocation_state = zs.geolocation_state THEN 0 ELSE 1 END AS cross_region_flag
+    FROM order_items oi
+    INNER JOIN orders o ON oi.order_id = o.order_id
+    INNER JOIN customers c ON o.customer_id = c.customer_id
+    INNER JOIN sellers s ON oi.seller_id = s.seller_id
+    INNER JOIN #zip_code_and_state zc ON c.customer_zip_code_prefix = zc.geolocation_zip_code_prefix
+    INNER JOIN #zip_code_and_state zs ON s.seller_zip_code_prefix = zs.geolocation_zip_code_prefix
+) t
+GROUP BY cross_region_flag
+-- Findings: 63% of all units of all items are delivered crossed regions. 36% are delivered within the same regions
 
