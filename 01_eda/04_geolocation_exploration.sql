@@ -21,6 +21,27 @@ HAVING COUNT(*) > 1;
 -- Grain (originally intended): one district per zip code prefix
 -- Grain (actually is): one geographical sample point in a district per row - non unique
 
+-- For the conflicting zip codes -> states situation. Majority voting has been applied
+DROP TABLE IF EXISTS #zip_code_and_state;
+SELECT 
+    geolocation_zip_code_prefix,
+    geolocation_state
+INTO #zip_code_and_state
+FROM
+(SELECT
+    geolocation_zip_code_prefix,
+    geolocation_state,
+    ROW_NUMBER() OVER (PARTITION BY geolocation_zip_code_prefix ORDER BY total DESC) AS numbering
+FROM (SELECT
+    geolocation_zip_code_prefix,
+    geolocation_state,
+    COUNT(*) AS total,
+    MAX(COUNT(*)) OVER (PARTITION BY  geolocation_zip_code_prefix) AS majority_count
+FROM geolocation
+GROUP BY geolocation_zip_code_prefix, geolocation_state ) t
+WHERE total = majority_count ) t2
+WHERE numbering = 1;
+
 SELECT COUNT(*) AS total_nulls
 FROM geolocation
 WHERE geolocation_lat IS NULL
@@ -31,4 +52,29 @@ SELECT COUNT(*) AS out_of_bounds_total FROM geolocation
 WHERE geolocation_lat NOT BETWEEN -33.74 AND 5.27
 OR geolocation_lng NOT BETWEEN -73.98 AND -34.73
 -- Findings: total of 42 sample points are potentially outside of Brazil's coordinate bounds
+
+-- 2. Coverage and flow
+SELECT DISTINCT   
+    geolocation_state,
+    COUNT(*) AS total,
+    ROUND(CAST(COUNT(*) AS FLOAT) / SUM(COUNT(*)) OVER () * 100 , 2) AS proportion
+FROM customers c  
+INNER JOIN #zip_code_and_state z
+ON c.customer_zip_code_prefix = z.geolocation_zip_code_prefix
+GROUP BY geolocation_state
+ORDER BY total DESC;
+-- Findings: Roughly 42% of all customers are located in SP (Sao Paulo) (41731 customers). 
+-- The top 5 states SP, RJ, MG, RS, PR alone accounts for over 75% of all customers
+
+SELECT DISTINCT  
+    geolocation_state,
+    COUNT(*) AS total,
+    ROUND(CAST(COUNT(*) AS FLOAT) / SUM(COUNT(*)) OVER () * 100 , 2) AS proportion
+FROM sellers s  
+INNER JOIN #zip_code_and_state z  
+ON s.seller_zip_code_prefix = z.geolocation_zip_code_prefix
+GROUP BY z.geolocation_state
+ORDER BY total DESC;
+-- Findings: Roughly 59% of all sellers are located in SP (Sao Paulo) (1814 sellers). 
+-- SP and PR alone acounts for over 70% of all sellers
 
