@@ -1,8 +1,8 @@
 -- ============================================================
--- HOW TO USE THIS FILE
 -- For each distribution below, run its corresponding section in script_for_graph.R first
 -- to see the histogram, then run the SQL query to get the summary statistics, 
--- and finally read the findings comment to interpret both together.
+-- and finally read the findings comment to interpret sequentially of 
+-- Order of analysis: histogram visualization -> obervation notes -> cross comparison to statistical summary and further analysis -> conclusion
 -- ============================================================
 
 USE Olist;
