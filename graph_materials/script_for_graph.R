@@ -1,22 +1,18 @@
 library(ggplot2)
 
-df <- read.csv("day_of_week_for_orders.csv")
+df <- read.csv("order_value.csv", header = FALSE)  # no header in file
+colnames(df) <- c("order_value")                   # name it yourself
 
-ggplot(df, aes(x = X2)) +
-  geom_histogram(binwidth = 1, fill = "steelblue", color = "white") +
-  labs(title = "Distribution of Orders by Day of Week", x = "Day of Week (1=Sun, 7=Sat)", y = "Frequency") +
-  theme_minimal()
-
-
-data <- read.csv("hour_of_day_orders.csv")
-
-hist(data$X2,
-     breaks = 23,
-     main   = "Distribution of Orders by Hour of Day",
-     xlab   = "Hour of Day (0 = Midnight, 23 = 11PM)",
-     ylab   = "Frequency",
-     col    = "steelblue",
-     border = "white",
-     xaxt   = "n")
-
-axis(1, at = 0:23, labels = 0:23)
+ggplot(df, aes(x = order_value)) +
+  geom_histogram(binwidth = 100, fill = "steelblue", color = "white") +
+  scale_x_continuous(
+    breaks = seq(0, 10000, by = 500),   # tick every 500
+    limits = c(0, 5000)                 # zoom in — most orders are here
+  ) +
+  labs(
+    title = "Distribution of Order Values",
+    x = "Order Total Value (BRL)",
+    y = "Count"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # readable labels

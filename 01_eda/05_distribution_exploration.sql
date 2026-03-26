@@ -59,7 +59,10 @@ SELECT
 FROM stats s
 CROSS JOIN percentiles p
 CROSS JOIN skewness sk;
-
+-- Highly right-skewed distribution (skewness 9.15): vast majority of 99,440 orders cluster at lower values, with a long tail of rare high-value outliers.
+-- Center: median $105.29 better represents typical order than mean $160.99, as extreme values pull the average upward.
+-- Spread & range: IQR $114.96 (Q1 $62.01–Q3 $176.97) shows half of orders fall in a moderate band; overall range $0–$13,664 with std. dev. $221.95.
+-- Visual summary: Histogram peaks sharply at low values then drops off; boxplot confirms dense lower cluster plus many high outliers. Overall, small-to-medium orders dominate, with occasional large purchases.
 
 WITH base AS (
     SELECT
