@@ -1,10 +1,3 @@
--- ============================================================
--- For each distribution below, run its corresponding section in script_for_graph.R first
--- to see the histogram, then run the SQL query to get the summary statistics, 
--- and finally read the findings comment to interpret sequentially of 
--- Order of analysis: histogram visualization -> obervation notes -> cross comparison to statistical summary and further analysis -> conclusion
--- ============================================================
-
 USE Olist;
 SELECT * FROM information_schema.columns
 WHERE NUMERIC_PRECISION IS NOT NULL;
@@ -113,6 +106,10 @@ FROM stats s
 CROSS JOIN percentiles p
 CROSS JOIN skewness sk;
 
+-- Shape: Right-skewed distribution with most freight ratio cluster on the lower side, and a long gradual tail of outliers. Unimodal with one peak at 12.5% then drops off gradually
+-- Center: since distribution is right-skewed, the median of 18.3256 is better representation of a typical freight ratio as the mean (20.8804) is being pulled towards the higher side by the extreme ouliers (rare large freight ratio)
+-- Spread: freight ratio ranges from 0% -> 95.5451%, however, 50% of all orders have freight-value in a quite narrow band of 11.6502% - 27.5463% (IQR: 15.8961)
+-- Visual summary: freight ratio peaks early at lower ratios then drops off gradually towards the end; box clot confirms dense lower freight ratios, with many high outliers. In summary, smaller freight ratios dominate, with occasional high freight ratios that drops off gradually in frequency as we go higher.
 
 WITH base AS (
     SELECT
