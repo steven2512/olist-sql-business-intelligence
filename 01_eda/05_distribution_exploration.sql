@@ -106,10 +106,10 @@ FROM stats s
 CROSS JOIN percentiles p
 CROSS JOIN skewness sk;
 
--- Shape: Right-skewed distribution with most freight ratio cluster on the lower side, and a long gradual tail of outliers. Unimodal with one peak at 12.5% then drops off gradually
+-- Shape: Right-skewed distribution with most freight ratio cluster on the lower side, and a long thick tail of outliers. Unimodal with one peak at 12.5% then drops off gradually
 -- Center: since distribution is right-skewed, the median of 18.3256 is better representation of a typical freight ratio as the mean (20.8804) is being pulled towards the higher side by the extreme ouliers (rare large freight ratio)
 -- Spread: freight ratio ranges from 0% -> 95.5451%, however, 50% of all orders have freight-value in a quite narrow band of 11.6502% - 27.5463% (IQR: 15.8961)
--- Visual summary: freight ratio peaks early at lower ratios then drops off gradually towards the end; box clot confirms dense lower freight ratios, with many high outliers. In summary, smaller freight ratios dominate, with occasional high freight ratios that drops off gradually in frequency as we go higher.
+-- Visual summary: freight ratio peaks early at lower ratios then drops off gradually towards the end; box clot confirms dense lower freight ratios, with many high outliers. In summary, smaller freight ratios dominate, with high freight ratios that drops off gradually in frequency as we go higher.
 
 WITH base AS (
     SELECT
@@ -159,6 +159,11 @@ SELECT
 FROM stats s
 CROSS JOIN percentiles p
 CROSS JOIN skewness sk;
+
+-- Shape: extreme right-skewed distribution, with a long thin tail caused by small amount of extreme outliers. Uniomdal with 1 peak at 1 item.
+-- Center: since it's right-skewed distribution, the median of 1 item better represents an order's typical total items compared to the mean of 1.1417 that is pulled towards the higher side by the outliers
+-- Spread: total items ranges from 1 -> 21, however, 50% of the orders have a mathetmatically tightest possible band at exactly 1 item (IQR: 0).
+-- Visual summary: The majority of orders (more than 90%+ of orders) consists of exactly 1 item, then drops sharply in frequency and remains sparse as there are more items.
 
 WITH base AS (
     SELECT
@@ -210,6 +215,10 @@ FROM stats s
 CROSS JOIN percentiles p
 CROSS JOIN skewness sk;
 
+-- shape: highly right-skewed distribution with a fat long tail, with most orders delivered within a lower amount of days, however a fair amount of orders are delivered at a much higher time frame.
+-- center: since it's right-skewed distribution, the median of 10 days better represents a typical delivery time than the mean of 12.4968 days, which was pulled above the median by the extreme outliers.
+-- spread: delivery time ranges from 0 days -> 210 days, however 50% of orders are delivered from 7 -> 16 days (IQR: 9)
+-- Visual summary: delivery time cluster most around 8-10 days mark, then drops but remains fairly dense as it approaches 50 - 100 days mark, and gradually remains a fair amount of density even at higher > 160 days, confirmed by the boxplot
 
 WITH base AS (
     SELECT CAST(review_score AS FLOAT) AS val
