@@ -532,3 +532,59 @@ CROSS JOIN skewness sk;
 -- center: since it's right-skewed distribution, the median value of 8 is a better representation of a typical total items sold for a seller compared to the mean of 36.3974, which is pulled towards the higher amount by a few of the very popular sellers
 -- spread: total items sold for a seller ranges from 1 -> 2033, however, 50% of sellers only have sold anywhere from 2 -> 24 items (IQR: 22)
 -- visual summary: most sellers' total items sold clustered and peaked at lower amount then drop offs as it gets to higher amount, confirmed by both histogram and box plots. However, there still remains a fair amount of sellers remain at higher total of items sold, confirming the fat tail.
+
+
+USE Olist;
+
+WITH base AS (
+    SELECT
+        MAX(CAST(payment_installments AS FLOAT)) AS val
+    FROM order_payments
+    GROUP BY order_id
+),
+
+stats AS (
+    SELECT
+        COUNT(*)    AS n,
+        MIN(val)    AS min_val,
+        MAX(val)    AS max_val,
+        AVG(val)    AS mean_val,
+        STDEV(val)  AS stddev_val
+    FROM base
+),
+
+percentiles AS (
+    SELECT DISTINCT
+        PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY val) OVER () AS p25,
+        PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY val) OVER () AS p50,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY val) OVER () AS p75
+    FROM base
+),
+
+skewness AS (
+    SELECT
+        (CAST(s.n AS FLOAT) / ((s.n - 1.0) * (s.n - 2.0)))
+            * SUM(POWER((b.val - s.mean_val) / NULLIF(s.stddev_val, 0), 3)) AS skewness
+    FROM base b
+    CROSS JOIN stats s
+    GROUP BY s.n, s.mean_val, s.stddev_val
+)
+
+SELECT
+    s.n,
+    ROUND(s.min_val,     4) AS min_val,
+    ROUND(s.max_val,     4) AS max_val,
+    ROUND(s.mean_val,    4) AS mean,
+    ROUND(p.p50,         4) AS median,
+    ROUND(s.stddev_val,  4) AS stddev,
+    ROUND(p.p25,         4) AS p25,
+    ROUND(p.p75,         4) AS p75,
+    ROUND(p.p75 - p.p25, 4) AS iqr,
+    ROUND(sk.skewness,   4) AS skewness
+FROM stats s
+CROSS JOIN percentiles p
+CROSS JOIN skewness sk;
+-- shape: moderately right-skewed distribution with a long sparse right tail. There is a very strong peak at 1 installment, then frequency generally drops as installment length increases. It is not perfectly smooth though, because there are visible bumps at common plan lengths like 8 and 10.
+-- center: since it is right-skewed, the median of 2 better represents a typical order-level max installment count than the mean of 2.9305, which is pulled upward by the smaller group of long-installment orders.
+-- spread: max installments range from 0 -> 24, however, 50% of all orders fall between 1 -> 4 installments (IQR: 3). Also, 71.46% of orders are at 3 installments or less, which reinforces that shorter payment horizons clearly dominate overall.
+-- visual summary: histogram peaks extremely sharply at 1, then stays meaningful across 2 -> 6 before becoming much sparser at higher installment lengths, with a few visible bumps at standard financing plans. Box plot confirms a dense lower cluster, median at 2, upper whisker around 8, and a smaller group of high-installment outliers above that. Overall, most customers either pay immediately or over short plans, while a smaller but still meaningful group are willing to stay on longer installment plans.
