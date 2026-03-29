@@ -1,30 +1,69 @@
 library(ggplot2)
 
-# Point this to an analytics export in graph_materials/csv when those files exist.
-csv_file <- "D:/Data Engineering/olist-sql-business-intelligence/graph_materials/csv/replace_with_analytics_export.csv"
+# Export your SQL result for Q1 to graph_materials/csv and point this path to it.
+# Expected columns:
+# - month_year
+# - total_orders
+# - month_revenue
+# - month_average_order_value
+csv_file <- "D:/Data Engineering/olist-sql-business-intelligence/graph_materials/csv/business_performance_q1.csv"
 
 if (file.exists(csv_file)) {
   df <- read.csv(csv_file)
-  col_name <- colnames(df)[1]
+  df$month_year <- as.Date(df$month_year, format = "%Y-%m-%d")
+  df <- df[order(df$month_year), ]
 
-  cat("Using column:", col_name, "\n")
+  base_theme <- theme_minimal() +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      plot.title = element_text(face = "bold")
+    )
 
-  ggplot(df, aes(x = .data[[col_name]])) +
-    geom_histogram(bins = 30, fill = "darkgreen", color = "white") +
-    labs(
-      title = paste("Histogram of", col_name),
-      x = col_name,
-      y = "Count"
+  orders_plot <- ggplot(df, aes(x = month_year, y = total_orders)) +
+    geom_line(color = "steelblue", linewidth = 1.1) +
+    scale_x_date(
+      date_breaks = "2 months",
+      date_labels = "%b %Y",
+      expand = expansion(mult = c(0.02, 0.04))
     ) +
-    theme_minimal()
-
-  ggplot(df, aes(y = .data[[col_name]])) +
-    geom_boxplot(fill = "darkgreen", color = "black", width = 0.4) +
     labs(
-      title = paste("Box Plot of", col_name),
-      y = col_name
+      title = "Monthly Orders Over Time",
+      x = "Month",
+      y = "Total Orders"
     ) +
-    theme_minimal()
+    base_theme
+
+  revenue_plot <- ggplot(df, aes(x = month_year, y = month_revenue)) +
+    geom_line(color = "darkgreen", linewidth = 1.1) +
+    scale_x_date(
+      date_breaks = "2 months",
+      date_labels = "%b %Y",
+      expand = expansion(mult = c(0.02, 0.04))
+    ) +
+    labs(
+      title = "Monthly Revenue Over Time",
+      x = "Month",
+      y = "Revenue"
+    ) +
+    base_theme
+
+  aov_plot <- ggplot(df, aes(x = month_year, y = month_average_order_value)) +
+    geom_line(color = "firebrick", linewidth = 1.1) +
+    scale_x_date(
+      date_breaks = "2 months",
+      date_labels = "%b %Y",
+      expand = expansion(mult = c(0.02, 0.04))
+    ) +
+    labs(
+      title = "Monthly Average Order Value Over Time",
+      x = "Month",
+      y = "Average Order Value"
+    ) +
+    base_theme
+
+  print(orders_plot)
+  print(revenue_plot)
+  print(aov_plot)
 } else {
-  message("Update csv_file in analytics_graphs.R before running this script.")
+  message("Export the Q1 SQL result to graph_materials/csv/business_performance_q1.csv before running this script.")
 }
