@@ -318,6 +318,11 @@ FROM stats s
 CROSS JOIN percentiles p
 CROSS JOIN skewness sk;
 
+-- shape: roughly symmetric with a very slight right skewed (0.0243). Orders are fairly evenly distributed throughout the month. Unimodal with one peak on day 24 of the month.
+-- center: since this is symmetric distribution, either mean of 15.5059 or median of 15 reasonbly represents the typical purchase day of a month.
+-- spread: there has been orders on every day of the month (day 1 -> 31). 50% of orders falls between day 8 - day 23 of the month. This shows orders are fairly evenly distributed across the month, and is not tightly clustered to any narrow band.
+-- visual summary: histogram appears fairly flat, with small bumps above the rest happen in later days of the month. Boxplot also looks balance around the center, confirming day of month has little skewness and no meaninful outlier behaviour
+
 
 -- ============================================================
 -- DISTRIBUTION: Month of Order
@@ -364,6 +369,10 @@ SELECT
 FROM stats s
 CROSS JOIN percentiles p
 CROSS JOIN skewness sk;
+-- shape: slightly right-skewed distribution, but not strongly skewed overall. Not clearly unimodal, though month 8 is the highest point and orders stay relatively high from month 3 -> 8 before dropping off later.
+-- center: since this is only slightly right-skewed, either mean of 6.0322 or median of 6 reasonably represents a typical order month.
+-- spread: month ranges from 1 -> 12, and 50% of all orders fall between month 3 -> 8 (IQR: 5). This shows orders are fairly spread across the year, though more concentrated in the earlier-to-middle months.
+-- visual summary: histogram stays fairly dense from month 1 -> 8 and peaks at month 8, then drops sharply at month 9 -> 10 before recovering somewhat at month 11. boxplot shows no meaningful outlier behaviour since month is bounded between 1 and 12.
 
 
 -- ============================================================
@@ -411,6 +420,10 @@ SELECT
 FROM stats s
 CROSS JOIN percentiles p
 CROSS JOIN skewness sk;
+-- shape: moderately left-skewed distribution, with most orders clustering from late morning to evening and a longer thinner tail toward the early-morning hours. Broadly unimodal, with the highest point at hour 16.
+-- center: since this is left-skewed, the median of 15 better represents a typical purchase hour than the mean of 14.7708, which is pulled slightly lower by the low-frequency overnight hours.
+-- spread: hour ranges from 0 -> 23, and 50% of all orders fall between hour 11 -> 19 (IQR: 8). This shows most orders are placed within a fairly broad daytime-to-evening window.
+-- visual summary: histogram rises sharply from the morning, stays very dense from around hour 9 -> 22, peaks in the afternoon, then falls off heavily during overnight and very early morning hours. boxplot also confirms the center is around the mid-to-late day rather than the extremes.
 
 
 -- ============================================================
@@ -459,9 +472,14 @@ FROM stats s
 CROSS JOIN percentiles p
 CROSS JOIN skewness sk;
 
+-- shape: orders cluster around weekdays, then drop clearly on the weekend. This is the real pattern. Framing it mainly as symmetric / slightly right-skewed is weaker because that depends on how weekdays were numerically encoded.
+-- center: mean and median are not very meaningful here because weekday is a cyclical categorical time unit, not a true linear numeric measure like order value or delivery days.
+-- spread: orders occur across all 7 days, but the distribution is not even. Monday -> Friday account for 76,594 orders (77.0%), while Saturday + Sunday account for 22,847 orders (23.0%). Among individual days, Monday is highest (16,196) and Saturday is lowest (10,887).
+-- visual summary: the bar chart is highest across the weekday block, then drops on Saturday, with a small recovery on Sunday. Overall, purchases are clearly weekday-heavy rather than weekend-heavy.
+
 
 WITH base AS (
-    SELECT COUNT(*) AS val
+    SELECT COUNT(DISTINCT order_id) AS val
     FROM sellers s
     INNER JOIN order_items i
         ON s.seller_id = i.seller_id
