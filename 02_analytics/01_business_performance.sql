@@ -47,7 +47,8 @@ SELECT
     c.total_orders,
     month_revenue,
     month_average_order_value
- FROM total_revenue r  
+INTO #MoM_performance 
+FROM total_revenue r  
 INNER JOIN avg_order_value a
 ON r.month_year = a.month_year
 INNER JOIN order_count c  
@@ -70,4 +71,23 @@ ORDER BY r.month_year
 -- There is one very sharp dip in Dec 2016, which has exactly 1 order, so it's not repsentative of the broader pattern. For the other parts, the average value stays very stable within a narrow band around 150 - 180 mark
 
 -- Overall observation: with average order value stays relatively the same, and revenue and order numbers increase almost at a 1:1 ratio, we can conclude that Olist revenue increase mostly comes from more orders, not bigger transaction size per orders.
+
+-- 2. Strongest and weakest performing month by revenue
+SELECT TOP 5 *
+FROM #MoM_performance
+ORDER BY month_revenue DESC
+
+SELECT TOP 5 *
+FROM #MoM_performance
+ORDER BY month_revenue ASC
+
+-- top 5 strongest performing months consist of the peak in Nov 2017 discussed previously, and the 4 months within early 2018
+
+-- top 5 worst performing months are on the early stage of the dataset, which is in late 2016 and early 2017
+
+-- December 2016 is the loweest extreme point, which as discussed contained only 1 order, so it should be interpreted cautiously
+
+
+
+
 
