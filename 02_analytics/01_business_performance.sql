@@ -72,7 +72,7 @@ ORDER BY r.month_year
 
 -- Overall observation: with average order value stays relatively the same, and revenue and order numbers increase almost at a 1:1 ratio, we can conclude that Olist revenue increase mostly comes from more orders, not bigger transaction size per orders.
 
--- 2. Strongest and weakest performing month by revenue
+-- Q2. Strongest and weakest performing months by revenue
 SELECT TOP 5 *
 FROM #MoM_performance
 ORDER BY month_revenue DESC
@@ -81,11 +81,53 @@ SELECT TOP 5 *
 FROM #MoM_performance
 ORDER BY month_revenue ASC
 
--- top 5 strongest performing months consist of the peak in Nov 2017 discussed previously, and the 4 months within early 2018
+-- top 5 strongest performing months consist of the peak in Nov 2017 discussed previously, and the 4 months within early 2018, which are all in the later period of the dataset
 
 -- top 5 worst performing months are on the early stage of the dataset, which is in late 2016 and early 2017
 
--- December 2016 is the loweest extreme point, which as discussed contained only 1 order, so it should be interpreted cautiously
+-- December 2016 is the lowest extreme point, which as discussed contained only 1 order, so it should be interpreted cautiously
+
+-- 3. How much of total business comes from new customers versus repeat customers?
+WITH order_value AS (
+    SELECT 
+        o.order_id, 
+        o.customer_id,
+        o.order_purchase_timestamp,
+        SUM(p.payment_value) AS total_value
+    FROM orders o 
+    INNER JOIN order_payments p  
+    ON o.order_id = p.order_id
+    GROUP BY o.order_id,
+             o.customer_id, 
+             order_purchase_timestamp
+), 
+customer_month_purchase AS (
+SELECT DISTINCT
+    customer_unique_id,
+    DATETRUNC(month, order_purchase_timestamp) AS month_day,
+    COUNT(*) OVER (PARTITION BY DATETRUNC(month, order_purchase_timestamp), customer_unique_id) AS total_orders,
+    SUM(total_value) OVER (PARTITION BY DATETRUNC(month, order_purchase_timestamp), customer_unique_id) AS total_spent
+FROM order_value ov 
+INNER JOIN customers c  
+ON ov.customer_id = c.customer_id
+),
+repeating_customers AS (
+    SELECT
+        *
+    FROM customer_month_purchase cm
+    WHERE EXISTS (SELECT 1 FROM customer_month_purchase WHERE customer_unique_id = cm.customer_unique_id
+    AND month_day < cm.month_day)
+)
+SELECT 
+    ROUND(CAST(
+        COUNT(*) AS FLOAT) / (SELECT COUNT(*) FROM customer_month_purchase WHERE month_day = r.month_day) ,  5) 
+        AS proportion_repeating_customers,
+    
+    ROUND(CAST(SUM(total_orders) AS FLOAT)/ (SELECT SUM(total_orders) FROM customer_month_purchase WHERE month_day = r.month_day), 5) AS repeating_customers_total_orders_contribution,
+
+    ROUND(CAST(SUM(total_spent) AS FLOAT) / (SELECT SUM(total_spent) FROM customer_month_purchase WHERE month_day = r.month_day), 5) AS repeating_customers_total_revenue_contribution
+FROM repeating_customers r
+GROUP BY month_day
 
 
 
