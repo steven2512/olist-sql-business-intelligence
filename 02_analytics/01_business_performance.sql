@@ -54,4 +54,20 @@ INNER JOIN order_count c
 ON r.month_year = c.month_year
 ORDER BY r.month_year
 
+-- analysis:
+--== Total orders ==--
+-- Total monthly orders has a clear uptrend over time.
+-- From the beginning of late 2016 to late 2017, the pattern is on a stable uptrend with only a few small corrections. However, the number of orders became more variable with ups and downs within a noticeable range from early 2018 onwards
+-- There were a few strong sudden rise, most notably was the one from Oct 2017 -> Nov 2017 with around ~70% MoM increase in total orders. But following month from Nov 2017 -> Dec 2017 has a noticeable dip, cutting the from Oct was cut by half.
+-- This suggest strong growth of order numbers from Olist in the first year, however it started to slowed down and consolidating in the later half
+
+--== Montly Revenue ==--
+-- Monthly Revenue followed an almost mirrored image of the total orders pattern above.
+
+--== Average Order Value ==--
+-- Average order value stays relatively flat over time
+-- The pattern is mostly stable over time, with occasional slight decrease MoM but quickly returns to the baseline
+-- There is one very sharp dip in Dec 2016, which has exactly 1 order, so it's not repsentative of the broader pattern. For the other parts, the average value stays very stable within a narrow band around 150 - 180 mark
+
+-- Overall observation: with average order value stays relatively the same, and revenue and order numbers increase almost at a 1:1 ratio, we can conclude that Olist revenue increase mostly comes from more orders, not bigger transaction size per orders.
 
