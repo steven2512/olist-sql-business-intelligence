@@ -1,4 +1,5 @@
 USE Olist;
+DROP TABLE IF EXISTS #MoM_performance;
 
 -- Q1: How are orders, revenue, and average order value trending over time?
 
@@ -53,7 +54,10 @@ INNER JOIN avg_order_value a
 ON r.month_year = a.month_year
 INNER JOIN order_count c  
 ON r.month_year = c.month_year
-ORDER BY r.month_year
+ORDER BY r.month_year;
+
+SELECT * FROM #MoM_performance
+ORDER BY month_year;
 
 -- analysis:
 --== Total orders ==--
@@ -73,13 +77,13 @@ ORDER BY r.month_year
 -- Overall observation: with average order value stays relatively the same, and revenue and order numbers increase almost at a 1:1 ratio, we can conclude that Olist revenue increase mostly comes from more orders, not bigger transaction size per orders.
 
 -- Q2. Strongest and weakest performing months by revenue
-SELECT TOP 5 *
-FROM #MoM_performance
-ORDER BY month_revenue DESC
+-- SELECT TOP 5 *
+-- FROM #MoM_performance
+-- ORDER BY month_revenue DESC
 
-SELECT TOP 5 *
-FROM #MoM_performance
-ORDER BY month_revenue ASC
+-- SELECT TOP 5 *
+-- FROM #MoM_performance
+-- ORDER BY month_revenue ASC;
 
 -- top 5 strongest performing months consist of the peak in Nov 2017 discussed previously, and the 4 months within early 2018, which are all in the later period of the dataset
 
@@ -87,7 +91,10 @@ ORDER BY month_revenue ASC
 
 -- December 2016 is the lowest extreme point, which as discussed contained only 1 order, so it should be interpreted cautiously
 
--- 3. How much of total business comes from new customers versus repeat customers?
+-- 3. How much of total business for every month comes from new customers versus repeat customers?
+
+
+
 WITH order_value AS (
     SELECT 
         o.order_id, 
@@ -119,6 +126,15 @@ repeating_customers AS (
     AND month_day < cm.month_day)
 )
 SELECT 
+    m.month_year,
+    COALESCE(proportion_repeating_customers, 0) AS proportion_repeating_customers,
+    COALESCE(repeating_customers_total_orders_contribution, 0) AS repeating_customers_total_orders_contribution,
+    COALESCE(repeating_customers_total_revenue_contribution, 0) AS repeating_customers_total_revenue_contribution
+ FROM #MoM_performance m 
+LEFT JOIN
+(
+SELECT
+    month_day,
     ROUND(CAST(
         COUNT(*) AS FLOAT) / (SELECT COUNT(*) FROM customer_month_purchase WHERE month_day = r.month_day) ,  5) 
         AS proportion_repeating_customers,
@@ -127,7 +143,12 @@ SELECT
 
     ROUND(CAST(SUM(total_spent) AS FLOAT) / (SELECT SUM(total_spent) FROM customer_month_purchase WHERE month_day = r.month_day), 5) AS repeating_customers_total_revenue_contribution
 FROM repeating_customers r
-GROUP BY month_day
+GROUP BY month_day) t
+ON m.month_year = t.month_day
+
+-- Proportion of purchases from new customers makes up the majority of shares across most periods
+-- Repeating customers proportion does gain slight increase over time from Feb 2017 -> Aug 2018 but stayed < 3% during those period, while new customers still take the overwhemingly majority
+-- However, an interesting shift happened in Sep 2018 where repeating customer proportion suddenly skyrockected to above 64%, then the following month (Oct 2018), repeating customers' purchases went to 75%
 
 
 
