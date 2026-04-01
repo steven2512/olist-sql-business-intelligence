@@ -8,7 +8,7 @@ Built with Microsoft SQL Server.
 ---
 
 ## Project Status
-In Progress - EDA Phase
+In Progress - Analytics Phase
 
 ---
 
