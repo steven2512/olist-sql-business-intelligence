@@ -148,7 +148,29 @@ ON m.month_year = t.month_day
 
 -- Proportion of purchases from new customers makes up the majority of shares across most periods
 -- Repeating customers proportion does gain slight increase over time from Feb 2017 -> Aug 2018 but stayed < 3% during those period, while new customers still take the overwhemingly majority
--- However, an interesting shift happened in Sep 2018 where repeating customer proportion suddenly skyrockected to above 64%, then the following month (Oct 2018), repeating customers' purchases went to 75%
+-- However, an interesting shift happened in Sep 2018 where repeating customer proportion suddenly skyrockected to above 64%, then the following month (Oct 2018), repeating customers' purchases went to 75%\
+
+-- How concentrated is total revenue across customers, sellers, and products?
+WITH customer_revenue AS (
+SELECT 
+    SUM(payment_value) AS total,
+    CUME_DIST() OVER (ORDER BY SUM(payment_value) DESC) AS percentile 
+FROM customers c  
+INNER JOIN orders o  
+ON c.customer_id = o.customer_id
+INNER JOIN order_payments p  
+on o.order_id = p.order_id
+GROUP BY c.customer_unique_id
+), top_n AS
+(SELECT 
+(SELECT SUM(total) FROM customer_revenue
+WHERE percentile <= 0.05) AS top_5_perc,
+(SELECT SUM(total) FROM customer_revenue
+WHERE percentile <= 0.10) AS top_10_perc,
+(SELECT SUM(total) FROM customer_revenue
+WHERE percentile <= 0.20) AS top_20_perc
+) SELECT * FROM top_n
+
 
 
 
