@@ -1,0 +1,171 @@
+-- How many orders does a typical customer place
+
+WITH base AS 
+(SELECT
+    customer_unique_id,
+    COUNT(*) AS val
+FROM orders o  
+INNER JOIN customers c  
+ON o.customer_id = c.customer_id
+GROUP BY c.customer_unique_id),
+
+stats AS (
+    SELECT
+        COUNT(*)    AS n,
+        MIN(val)    AS min_val,
+        MAX(val)    AS max_val,
+        AVG(CAST(val AS FLOAT)) AS mean_val,
+        STDEV(val)  AS stddev_val
+    FROM base
+),
+
+percentiles AS (
+    SELECT DISTINCT
+        PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY val) OVER () AS p25,
+        PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY val) OVER () AS p50,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY val) OVER () AS p75
+    FROM base
+),
+
+skewness AS (
+    SELECT
+        (CAST(s.n AS FLOAT) / ((s.n - 1.0) * (s.n - 2.0)))
+            * SUM(POWER((CAST(b.val AS FLOAT) - s.mean_val) / NULLIF(s.stddev_val, 0), 3)) AS skewness
+    FROM base b
+    CROSS JOIN stats s
+    GROUP BY s.n, s.mean_val, s.stddev_val
+)
+
+SELECT
+    s.n,
+    ROUND(s.min_val,     4) AS min_val,
+    ROUND(s.max_val,     4) AS max_val,
+    ROUND(s.mean_val,    4) AS mean,
+    ROUND(p.p50,         4) AS median,
+    ROUND(s.stddev_val,  4) AS stddev,
+    ROUND(p.p25,         4) AS p25,
+    ROUND(p.p75,         4) AS p75,
+    ROUND(p.p75 - p.p25, 4) AS iqr,
+    ROUND(sk.skewness,   4) AS skewness
+FROM stats s
+CROSS JOIN percentiles p
+CROSS JOIN skewness sk;
+
+
+-- What share of customers purchase only once versus more than once?
+WITH customer_orders AS
+(SELECT
+    customer_unique_id,
+    COUNT(*) AS val
+FROM orders o  
+INNER JOIN customers c  
+ON o.customer_id = c.customer_id
+GROUP BY c.customer_unique_id),
+total_orders AS (
+    SELECT 
+        SUM(val) AS total_one_order,
+        CAST(SUM(val) AS FLOAT) / 
+        (SELECT SUM(val) FROM customer_orders) AS one_order_proportion,
+         1 - CAST(SUM(val) AS FLOAT) / (SELECT SUM(val)
+         FROM customer_orders) AS more_order_proportion
+    FROM customer_orders
+    WHERE val = 1
+) SELECT * FROM total_orders;
+
+-- 93.6% of customers purchased only once, and 6.37% of customers purchase more than once
+
+-- How long does it typically take for a customer to place a second order?
+WITH base AS
+(SELECT
+    date_diff AS val
+FROM (
+SELECT
+    customer_unique_id,
+    DATEDIFF(day, LAG(order_purchase_timestamp) OVER (PARTITION BY customer_unique_id ORDER BY order_purchase_timestamp), order_purchase_timestamp) AS date_diff
+FROM (
+SELECT
+    customer_unique_id,
+    order_purchase_timestamp,
+    COUNT(*) OVER (PARTITION BY customer_unique_id) AS total_orders,
+    ROW_NUMBER() OVER (PARTITION BY customer_unique_id ORDER BY order_purchase_timestamp) AS order_no
+FROM customers c  
+INNER JOIN orders o  
+ON c.customer_id = o.customer_id) t
+WHERE total_orders > 1 AND order_no <= 2 ) t2
+WHERE date_diff IS NOT NULL )
+,
+stats AS (
+    SELECT
+        COUNT(*)    AS n,
+        MIN(val)    AS min_val,
+        MAX(val)    AS max_val,
+        AVG(CAST(val AS FLOAT)) AS mean_val,
+        STDEV(val)  AS stddev_val
+    FROM base
+),
+
+percentiles AS (
+    SELECT DISTINCT
+        PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY val) OVER () AS p25,
+        PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY val) OVER () AS p50,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY val) OVER () AS p75
+    FROM base
+),
+
+skewness AS (
+    SELECT
+        (CAST(s.n AS FLOAT) / ((s.n - 1.0) * (s.n - 2.0)))
+            * SUM(POWER((CAST(b.val AS FLOAT) - s.mean_val) / NULLIF(s.stddev_val, 0), 3)) AS skewness
+    FROM base b
+    CROSS JOIN stats s
+    GROUP BY s.n, s.mean_val, s.stddev_val
+)
+
+SELECT
+    s.n,
+    ROUND(s.min_val,     4) AS min_val,
+    ROUND(s.max_val,     4) AS max_val,
+    ROUND(s.mean_val,    4) AS mean,
+    ROUND(p.p50,         4) AS median,
+    ROUND(s.stddev_val,  4) AS stddev,
+    ROUND(p.p25,         4) AS p25,
+    ROUND(p.p75,         4) AS p75,
+    ROUND(p.p75 - p.p25, 4) AS iqr,
+    ROUND(sk.skewness,   4) AS skewness
+FROM stats s
+CROSS JOIN percentiles p
+CROSS JOIN skewness sk;
+
+-- Do repeat customers spend more per order than one-time customers?
+
+WITH customers_spent AS (
+SELECT
+    customer_unique_id,
+    COUNT(*) AS total_orders,
+    AVG(order_value) AS avg_spent
+FROM customers c  
+INNER JOIN orders o  
+ON c.customer_id = o.customer_id
+INNER JOIN (
+    SELECT
+        order_id,
+        SUM(payment_value) AS order_value
+    FROM 
+    order_payments
+    GROUP BY order_id) p
+ON o.order_id = p.order_id
+GROUP BY customer_unique_id
+)
+SELECT AVG(avg_spent) AS avg_spent_repeating, 
+    (SELECT AVG(avg_spent) 
+    FROM customers_spent 
+    WHERE total_orders = 1) AS avg_spent_one_time
+FROM customers_spent
+WHERE total_orders > 1
+
+-- typically, one-time-customer spends more than average compared to repeating customer (161.81 > 148.5)
+
+--Do repeat customers buy more items per order than one-time customers?
+
+
+
