@@ -166,6 +166,31 @@ WHERE total_orders > 1
 -- typically, one-time-customer spends more than average compared to repeating customer (161.81 > 148.5)
 
 --Do repeat customers buy more items per order than one-time customers?
+WITH customers_items AS (
+SELECT
+    customer_unique_id,
+    COUNT(*) AS total_orders,
+    AVG(CAST(total_item AS FLOAT)) AS avg_items
+FROM customers c  
+INNER JOIN orders o  
+ON c.customer_id = o.customer_id
+INNER JOIN (
+    SELECT
+        order_id,
+        COUNT(*) AS total_item
+    FROM 
+    order_items
+    GROUP BY order_id) i
+ON o.order_id = i.order_id
+GROUP BY customer_unique_id
+)
+SELECT AVG(CAST(avg_items AS FLOAT)) AS avg_items_repeating, 
+    (SELECT AVG(CAST(avg_items AS FLOAT))
+    FROM customers_items 
+    WHERE total_orders = 1) AS avg_items_one_time
+FROM customers_items
+WHERE total_orders > 1
 
+-- Repeating customers typically buy slightly more items per order compared to one-time customer (1.21 > 1.13)
 
 
