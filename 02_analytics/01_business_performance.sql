@@ -152,24 +152,134 @@ ON m.month_year = t.month_day
 
 -- How concentrated is total revenue across customers, sellers, and products?
 WITH customer_revenue AS (
-SELECT 
-    SUM(payment_value) AS total,
-    CUME_DIST() OVER (ORDER BY SUM(payment_value) DESC) AS percentile 
-FROM customers c  
-INNER JOIN orders o  
-ON c.customer_id = o.customer_id
-INNER JOIN order_payments p  
-on o.order_id = p.order_id
-GROUP BY c.customer_unique_id
-), top_n AS
-(SELECT 
-(SELECT SUM(total) FROM customer_revenue
-WHERE percentile <= 0.05) AS top_5_perc,
-(SELECT SUM(total) FROM customer_revenue
-WHERE percentile <= 0.10) AS top_10_perc,
-(SELECT SUM(total) FROM customer_revenue
-WHERE percentile <= 0.20) AS top_20_perc
-) SELECT * FROM top_n
+    SELECT 
+        SUM(payment_value) AS total,
+        SUM(SUM(payment_value)) OVER () AS total_rev,
+        CUME_DIST() OVER (ORDER BY SUM(payment_value) DESC) AS percentile 
+    FROM customers c  
+    INNER JOIN orders o  
+        ON c.customer_id = o.customer_id
+    INNER JOIN order_payments p  
+        ON o.order_id = p.order_id
+    WHERE LOWER(o.order_status) = 'delivered'
+    GROUP BY c.customer_unique_id
+),
+top_5 AS (
+    SELECT
+        SUM(total) AS top_5_total,
+        SUM(total) / MAX(total_rev) AS top_5_prop
+    FROM customer_revenue
+    WHERE percentile <= 0.05
+),
+top_10 AS (
+    SELECT
+        SUM(total) AS top_10_total,
+        SUM(total) / MAX(total_rev) AS top_10_prop
+    FROM customer_revenue
+    WHERE percentile <= 0.10
+),
+top_20 AS (
+    SELECT
+        SUM(total) AS top_20_total,
+        SUM(total) / MAX(total_rev) AS top_20_prop
+    FROM customer_revenue
+    WHERE percentile <= 0.20
+)
+SELECT *
+FROM top_5
+CROSS JOIN top_10
+CROSS JOIN top_20;
+
+-- top 5% of customers contribute to 26.8% of GMV
+-- top 10% of customers contribute to 38.25% of GMV
+-- top 20% of customers contribute to 53.5% of GMV
+-- Overall, GMV is moderaly concentrated, with 20% of customers generating over half the revenue, suggesting customer revenue is not evenly distributed, with higher value customers contributing a higher share.
+
+WITH sellers_revenue AS (
+    SELECT
+        SUM(price + freight_value) AS total,
+        SUM(SUM(price + freight_value)) OVER () AS total_rev,
+        CUME_DIST() OVER (ORDER BY SUM(price + freight_value) DESC) AS percentile
+    FROM sellers s  
+    INNER JOIN order_items i  
+    ON s.seller_id = i.seller_id
+    WHERE i.order_id IN (SELECT order_id FROM orders WHERE LOWER(order_status) = 'delivered')
+    GROUP BY s.seller_id
+), top_5 AS (
+    SELECT
+        SUM(total) AS top_5_total,
+        SUM(total) / MAX(total_rev) AS top_5_prop
+    FROM sellers_revenue
+    WHERE percentile <= 0.05      
+),
+top_10 AS (
+    SELECT
+        SUM(total) AS top_10_total,
+        SUM(total) / MAX(total_rev) AS top_10_prop
+    FROM sellers_revenue
+    WHERE percentile <= 0.10
+),
+top_20 AS (
+    SELECT
+        SUM(total) AS top_20_total,
+        SUM(total) / MAX(total_rev) AS top_20_prop
+    FROM sellers_revenue
+    WHERE percentile <= 0.20
+)
+SELECT *
+FROM top_5
+CROSS JOIN top_10
+CROSS JOIN top_20;
+
+-- top 5% of sellers is accounted for 52% of GMV
+-- top 10% of sellers is accoutned for 66% of GMV
+-- top 20% of sellers is account for 82% of GMV
+-- Overall, the GMV is extremely concentrated, with top 20% of sellers accounts for over 80% of GMV, suggesting an extremely disproportionate distribution, with higher value sellers accounts for majority of the GMV
+
+WITH product_revenue AS (
+    SELECT 
+        SUM(price + freight_value) AS total,
+        SUM(SUM(price + freight_value)) OVER () AS total_rev,
+        CUME_DIST() OVER (ORDER BY SUM(price + freight_value) DESC) AS percentile
+    FROM order_items i   
+    INNER JOIN products p  
+        ON i.product_id = p.product_id
+    WHERE i.order_id IN (SELECT order_id FROM orders WHERE LOWER(order_status) = 'delivered')
+    GROUP BY p.product_id
+),
+top_5 AS (
+    SELECT
+        SUM(total) AS top_5_total,
+        SUM(total) / MAX(total_rev) AS top_5_prop
+    FROM product_revenue
+    WHERE percentile <= 0.05
+),
+top_10 AS (
+    SELECT
+        SUM(total) AS top_10_total,
+        SUM(total) / MAX(total_rev) AS top_10_prop
+    FROM product_revenue
+    WHERE percentile <= 0.10
+),
+top_20 AS (
+    SELECT
+        SUM(total) AS top_20_total,
+        SUM(total) / MAX(total_rev) AS top_20_prop
+    FROM product_revenue
+    WHERE percentile <= 0.20
+)
+SELECT *
+FROM top_5
+CROSS JOIN top_10
+CROSS JOIN top_20;
+
+-- top 5% best selling products accounts for 46% of GMV
+-- top 10% of best selling products accoutns for 59% of GMV
+-- top 20% of best-selling products accounts for 73% of GMV
+-- Overall, very concentrated GMV among products, with top 20% of products accounts for nearly 75% of GMV, suggesting a small portion of best-selling products contribute a higher share of GMV.
+
+
+
 
 
 
