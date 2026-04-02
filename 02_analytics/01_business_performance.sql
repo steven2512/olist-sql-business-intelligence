@@ -151,6 +151,8 @@ ON m.month_year = t.month_day
 -- However, an interesting shift happened in Sep 2018 where repeating customer proportion suddenly skyrockected to above 64%, then the following month (Oct 2018), repeating customers' purchases went to 75%\
 
 -- How concentrated is total revenue across customers, sellers, and products?
+DROP TABLE IF EXISTS #revenue_concentration_summary;
+
 WITH customer_revenue AS (
     SELECT 
         SUM(payment_value) AS total,
@@ -185,7 +187,15 @@ top_20 AS (
     FROM customer_revenue
     WHERE percentile <= 0.20
 )
-SELECT *
+SELECT
+    'Customers' AS entity_type,
+    top_5_total,
+    top_5_prop,
+    top_10_total,
+    top_10_prop,
+    top_20_total,
+    top_20_prop
+INTO #revenue_concentration_summary
 FROM top_5
 CROSS JOIN top_10
 CROSS JOIN top_20;
@@ -226,7 +236,23 @@ top_20 AS (
     FROM sellers_revenue
     WHERE percentile <= 0.20
 )
-SELECT *
+INSERT INTO #revenue_concentration_summary (
+    entity_type,
+    top_5_total,
+    top_5_prop,
+    top_10_total,
+    top_10_prop,
+    top_20_total,
+    top_20_prop
+)
+SELECT
+    'Sellers' AS entity_type,
+    top_5_total,
+    top_5_prop,
+    top_10_total,
+    top_10_prop,
+    top_20_total,
+    top_20_prop
 FROM top_5
 CROSS JOIN top_10
 CROSS JOIN top_20;
@@ -268,10 +294,29 @@ top_20 AS (
     FROM product_revenue
     WHERE percentile <= 0.20
 )
-SELECT *
+INSERT INTO #revenue_concentration_summary (
+    entity_type,
+    top_5_total,
+    top_5_prop,
+    top_10_total,
+    top_10_prop,
+    top_20_total,
+    top_20_prop
+)
+SELECT
+    'Products' AS entity_type,
+    top_5_total,
+    top_5_prop,
+    top_10_total,
+    top_10_prop,
+    top_20_total,
+    top_20_prop
 FROM top_5
 CROSS JOIN top_10
 CROSS JOIN top_20;
+
+SELECT *
+FROM #revenue_concentration_summary;
 
 -- top 5% best selling products accounts for 46% of GMV
 -- top 10% of best selling products accoutns for 59% of GMV

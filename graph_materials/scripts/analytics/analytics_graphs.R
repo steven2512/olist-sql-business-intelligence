@@ -129,3 +129,88 @@ if (file.exists(mix_file)) {
 } else {
   message("Export the customer mix SQL result to graph_materials/csv/new_vs_repeat_customer_mix.csv before running this section.")
 }
+
+# ============================================================
+# Q5. Revenue Concentration Across Customers, Sellers, and Products
+# ============================================================
+# Export the SQL summary result for the concentration chart to:
+# graph_materials/csv/revenue_concentration_summary.csv
+#
+# Expected columns:
+# - entity_type
+# - top_5_prop
+# - top_10_prop
+# - top_20_prop
+#
+# Notes:
+# - each proportion should be stored as a decimal such as 0.27
+# - this section plots cumulative revenue share captured by top contributors
+
+concentration_file <- "D:/Data Engineering/olist-sql-business-intelligence/graph_materials/csv/revenue_concentration_summary.csv"
+
+if (file.exists(concentration_file)) {
+  concentration_df <- read.csv(concentration_file)
+
+  concentration_plot_df <- rbind(
+    data.frame(
+      entity_type = concentration_df$entity_type,
+      top_n_group = "Top 5%",
+      revenue_share = concentration_df$top_5_prop
+    ),
+    data.frame(
+      entity_type = concentration_df$entity_type,
+      top_n_group = "Top 10%",
+      revenue_share = concentration_df$top_10_prop
+    ),
+    data.frame(
+      entity_type = concentration_df$entity_type,
+      top_n_group = "Top 20%",
+      revenue_share = concentration_df$top_20_prop
+    )
+  )
+
+  concentration_plot_df$entity_type <- factor(
+    concentration_plot_df$entity_type,
+    levels = c("Customers", "Sellers", "Products")
+  )
+
+  concentration_plot_df$top_n_group <- factor(
+    concentration_plot_df$top_n_group,
+    levels = c("Top 5%", "Top 10%", "Top 20%")
+  )
+
+  concentration_theme <- theme_minimal() +
+    theme(
+      axis.text.x = element_text(face = "bold"),
+      plot.title = element_text(face = "bold"),
+      legend.title = element_text(face = "bold"),
+      legend.position = "top"
+    )
+
+  concentration_plot <- ggplot(
+    concentration_plot_df,
+    aes(x = top_n_group, y = revenue_share, color = entity_type, group = entity_type)
+  ) +
+    geom_line(linewidth = 1.2) +
+    geom_point(size = 3) +
+    geom_hline(yintercept = 0.5, linetype = "dashed", color = "gray60") +
+    scale_y_continuous(labels = scales::percent) +
+    scale_color_manual(
+      values = c(
+        "Customers" = "steelblue",
+        "Sellers" = "firebrick",
+        "Products" = "darkgreen"
+      )
+    ) +
+    labs(
+      title = "Top-N Revenue Contribution by Entity Type",
+      x = "Top Contributor Group",
+      y = "Cumulative Revenue Share",
+      color = "Entity Type"
+    ) +
+    concentration_theme
+
+  print(concentration_plot)
+} else {
+  message("Export the concentration SQL result to graph_materials/csv/revenue_concentration_summary.csv before running this section.")
+}
