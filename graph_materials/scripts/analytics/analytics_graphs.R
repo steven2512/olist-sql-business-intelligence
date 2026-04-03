@@ -1,5 +1,22 @@
 library(ggplot2)
 
+base_theme <- theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(face = "bold")
+  )
+
+print_side_by_side <- function(left_plot, right_plot, widths = c(3, 1)) {
+  grid::grid.newpage()
+  grid::pushViewport(grid::viewport(layout = grid::grid.layout(
+    nrow = 1,
+    ncol = 2,
+    widths = grid::unit(widths, "null")
+  )))
+  print(left_plot, vp = grid::viewport(layout.pos.row = 1, layout.pos.col = 1))
+  print(right_plot, vp = grid::viewport(layout.pos.row = 1, layout.pos.col = 2))
+}
+
 # Export your SQL result for Q1 to graph_materials/csv and point this path to it.
 # Expected columns:
 # - month_year
@@ -12,12 +29,6 @@ if (file.exists(csv_file)) {
   df <- read.csv(csv_file)
   df$month_year <- as.Date(df$month_year, format = "%Y-%m-%d")
   df <- df[order(df$month_year), ]
-
-  base_theme <- theme_minimal() +
-    theme(
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      plot.title = element_text(face = "bold")
-    )
 
   orders_plot <- ggplot(df, aes(x = month_year, y = total_orders)) +
     geom_line(color = "steelblue", linewidth = 1.1) +
@@ -213,4 +224,165 @@ if (file.exists(concentration_file)) {
   print(concentration_plot)
 } else {
   message("Export the concentration SQL result to graph_materials/csv/revenue_concentration_summary.csv before running this section.")
+}
+
+# ============================================================
+# 02 Customer Behaviour
+# ============================================================
+
+# Q1. How many orders does a typical customer place?
+customer_orders_file <- "D:/Data Engineering/olist-sql-business-intelligence/graph_materials/csv/customer_orders_distribution.csv"
+
+if (file.exists(customer_orders_file)) {
+  customer_orders_df <- read.csv(customer_orders_file)
+
+  customer_orders_plot <- ggplot(customer_orders_df, aes(x = total_orders)) +
+    geom_histogram(binwidth = 1, fill = "steelblue", color = "white", boundary = 0.5) +
+    scale_x_continuous(breaks = seq(1, max(customer_orders_df$total_orders), by = 1)) +
+    labs(
+      title = "Customer Order Count Distribution",
+      x = "Delivered Orders per Customer",
+      y = "Number of Customers"
+    ) +
+    base_theme
+
+  customer_orders_boxplot <- ggplot(customer_orders_df, aes(y = total_orders)) +
+    geom_boxplot(fill = "steelblue", alpha = 0.8, outlier.color = "firebrick") +
+    labs(
+      title = "Boxplot",
+      x = NULL,
+      y = "Delivered Orders per Customer"
+    ) +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      plot.title = element_text(face = "bold", hjust = 0.5)
+    )
+
+  print_side_by_side(customer_orders_plot, customer_orders_boxplot)
+} else {
+  message("Export the customer order distribution SQL result to graph_materials/csv/customer_orders_distribution.csv before running this section.")
+}
+
+# Q2. What share of customers purchase only once versus more than once?
+customer_share_file <- "D:/Data Engineering/olist-sql-business-intelligence/graph_materials/csv/customer_repeat_share.csv"
+
+if (file.exists(customer_share_file)) {
+  customer_share_df <- read.csv(customer_share_file)
+  customer_share_df$group_label <- "Customers"
+  customer_share_df$customer_type <- factor(
+    customer_share_df$customer_type,
+    levels = c("One-time", "Repeat")
+  )
+
+  customer_share_plot <- ggplot(
+    customer_share_df,
+    aes(x = group_label, y = customer_proportion, fill = customer_type)
+  ) +
+    geom_col(position = "fill", width = 0.6) +
+    scale_y_continuous(labels = scales::percent) +
+    scale_fill_manual(values = c("One-time" = "steelblue", "Repeat" = "darkorange")) +
+    labs(
+      title = "Customer Share: One-time vs Repeat",
+      x = NULL,
+      y = "Proportion of Customers",
+      fill = "Customer Type"
+    ) +
+    base_theme +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+
+  print(customer_share_plot)
+} else {
+  message("Export the customer share SQL result to graph_materials/csv/customer_repeat_share.csv before running this section.")
+}
+
+# Q3. How long does it typically take for a customer to place a second order?
+second_order_gap_file <- "D:/Data Engineering/olist-sql-business-intelligence/graph_materials/csv/second_order_gap_days.csv"
+
+if (file.exists(second_order_gap_file)) {
+  second_order_gap_df <- read.csv(second_order_gap_file)
+
+  second_order_gap_plot <- ggplot(second_order_gap_df, aes(x = days_to_second_order)) +
+    geom_histogram(binwidth = 10, fill = "darkgreen", color = "white", boundary = 0) +
+    labs(
+      title = "Days Until Second Order",
+      x = "Days Between First and Second Delivered Order",
+      y = "Number of Customers"
+    ) +
+    base_theme
+
+  second_order_gap_boxplot <- ggplot(second_order_gap_df, aes(y = days_to_second_order)) +
+    geom_boxplot(fill = "darkgreen", alpha = 0.8, outlier.color = "firebrick") +
+    labs(
+      title = "Boxplot",
+      x = NULL,
+      y = "Days Between First and Second Delivered Order"
+    ) +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      plot.title = element_text(face = "bold", hjust = 0.5)
+    )
+
+  print_side_by_side(second_order_gap_plot, second_order_gap_boxplot)
+} else {
+  message("Export the second-order gap SQL result to graph_materials/csv/second_order_gap_days.csv before running this section.")
+}
+
+# Q4. Do repeat customers spend more per order than one-time customers?
+order_value_comparison_file <- "D:/Data Engineering/olist-sql-business-intelligence/graph_materials/csv/repeat_vs_one_time_order_value.csv"
+
+if (file.exists(order_value_comparison_file)) {
+  order_value_comparison_df <- read.csv(order_value_comparison_file)
+  order_value_comparison_df$customer_type <- factor(
+    order_value_comparison_df$customer_type,
+    levels = c("One-time", "Repeat")
+  )
+
+  order_value_comparison_plot <- ggplot(
+    order_value_comparison_df,
+    aes(x = customer_type, y = avg_order_value, fill = customer_type)
+  ) +
+    geom_col(width = 0.6, show.legend = FALSE) +
+    scale_fill_manual(values = c("One-time" = "steelblue", "Repeat" = "darkorange")) +
+    labs(
+      title = "Average Order Value: One-time vs Repeat Customers",
+      x = "Customer Type",
+      y = "Average Order Value"
+    ) +
+    base_theme
+
+  print(order_value_comparison_plot)
+} else {
+  message("Export the order value comparison SQL result to graph_materials/csv/repeat_vs_one_time_order_value.csv before running this section.")
+}
+
+# Q5. Do repeat customers buy more items per order than one-time customers?
+items_comparison_file <- "D:/Data Engineering/olist-sql-business-intelligence/graph_materials/csv/repeat_vs_one_time_items.csv"
+
+if (file.exists(items_comparison_file)) {
+  items_comparison_df <- read.csv(items_comparison_file)
+  items_comparison_df$customer_type <- factor(
+    items_comparison_df$customer_type,
+    levels = c("One-time", "Repeat")
+  )
+
+  items_comparison_plot <- ggplot(
+    items_comparison_df,
+    aes(x = customer_type, y = avg_items_per_order, fill = customer_type)
+  ) +
+    geom_col(width = 0.6, show.legend = FALSE) +
+    scale_fill_manual(values = c("One-time" = "steelblue", "Repeat" = "darkorange")) +
+    labs(
+      title = "Average Items per Order: One-time vs Repeat Customers",
+      x = "Customer Type",
+      y = "Average Items per Order"
+    ) +
+    base_theme
+
+  print(items_comparison_plot)
+} else {
+  message("Export the items comparison SQL result to graph_materials/csv/repeat_vs_one_time_items.csv before running this section.")
 }

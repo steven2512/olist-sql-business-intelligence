@@ -1,5 +1,5 @@
+USE Olist;
 -- How many orders does a typical customer place
-
 WITH base AS 
 (SELECT
     customer_unique_id,
@@ -7,6 +7,7 @@ WITH base AS
 FROM orders o  
 INNER JOIN customers c  
 ON o.customer_id = c.customer_id
+WHERE LOWER(o.order_status) = 'delivered'
 GROUP BY c.customer_unique_id),
 
 stats AS (
@@ -51,6 +52,11 @@ FROM stats s
 CROSS JOIN percentiles p
 CROSS JOIN skewness sk;
 
+-- shape: extreme right-skewed, with majority of customers place exactly 1 order. thin long tail with 1 peak (unimodal)
+-- center: right-skewed suggests median is more of a typical total orders a customer place at exactly 1 order.
+-- spread: customers range from 1 -> 15 orders, but 50% of customers place exactly 1 order (IQR: 1), in reality, majority of customers place exactly 1 order.
+-- Taking into the context of the next question (97% of customers are one-time), it makes sense how most customers place exactly 1 order.
+
 
 -- What share of customers purchase only once versus more than once?
 WITH customer_orders AS
@@ -60,19 +66,20 @@ WITH customer_orders AS
 FROM orders o  
 INNER JOIN customers c  
 ON o.customer_id = c.customer_id
+WHERE LOWER(o.order_status) = 'delivered'
 GROUP BY c.customer_unique_id),
 total_orders AS (
     SELECT 
-        SUM(val) AS total_one_order,
-        CAST(SUM(val) AS FLOAT) / 
-        (SELECT SUM(val) FROM customer_orders) AS one_order_proportion,
-         1 - CAST(SUM(val) AS FLOAT) / (SELECT SUM(val)
+        COUNT(*) AS total_one_order,
+        CAST(COUNT(*) AS FLOAT) / 
+        (SELECT COUNT(*) FROM customer_orders) AS one_order_proportion,
+         1 - CAST(COUNT(*) AS FLOAT) / (SELECT COUNT(*)
          FROM customer_orders) AS more_order_proportion
     FROM customer_orders
     WHERE val = 1
 ) SELECT * FROM total_orders;
 
--- 93.6% of customers purchased only once, and 6.37% of customers purchase more than once
+-- ~97% of customers purchased only once, and 3% of customers purchase more than once
 
 -- How long does it typically take for a customer to place a second order?
 WITH base AS
@@ -90,7 +97,8 @@ SELECT
     ROW_NUMBER() OVER (PARTITION BY customer_unique_id ORDER BY order_purchase_timestamp) AS order_no
 FROM customers c  
 INNER JOIN orders o  
-ON c.customer_id = o.customer_id) t
+ON c.customer_id = o.customer_id
+WHERE LOWER(o.order_status) = 'delivered') t
 WHERE total_orders > 1 AND order_no <= 2 ) t2
 WHERE date_diff IS NOT NULL )
 ,
@@ -136,6 +144,10 @@ FROM stats s
 CROSS JOIN percentiles p
 CROSS JOIN skewness sk;
 
+-- shape: highly right-skewed distribution, with a long fat tail. Most customers take a shorter amount of time to place a 2nd order. Unimodal with 1 peak.
+-- center: since it's a right-skewed distribution, the median of 29 days is a better representation than the mean of 81 days. So typically, a repeating customer would place a second order about a month after their first one.
+-- spread: customers took anywhere from 0 -> 609 days to place a second order. However, 50% of customers lie within a wide band of 0 -> 126 days before placing a second order (IQR: 126)
+
 -- Do repeat customers spend more per order than one-time customers?
 
 WITH customers_spent AS (
@@ -154,6 +166,7 @@ INNER JOIN (
     order_payments
     GROUP BY order_id) p
 ON o.order_id = p.order_id
+WHERE LOWER(o.order_status) = 'delivered'
 GROUP BY customer_unique_id
 )
 SELECT AVG(avg_spent) AS avg_spent_repeating, 
@@ -174,6 +187,7 @@ SELECT
 FROM customers c  
 INNER JOIN orders o  
 ON c.customer_id = o.customer_id
+
 INNER JOIN (
     SELECT
         order_id,
@@ -182,6 +196,7 @@ INNER JOIN (
     order_items
     GROUP BY order_id) i
 ON o.order_id = i.order_id
+WHERE LOWER(o.order_status) = 'delivered'
 GROUP BY customer_unique_id
 )
 SELECT AVG(CAST(avg_items AS FLOAT)) AS avg_items_repeating, 
