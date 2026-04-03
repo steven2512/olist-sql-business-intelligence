@@ -71,7 +71,47 @@ FROM rfm_raw
         ELSE 1 END AS m
     
     FROM rfm_percentile
-) SELECT * FROM rfm_score
+),
+
+rfm_segment AS (
+    SELECT
+        customer_unique_id,
+        r,
+        f,
+        m,
+        CASE
+            WHEN r BETWEEN 4 AND 5
+             AND f BETWEEN 4 AND 5
+             AND m BETWEEN 4 AND 5 THEN 'Champions'
+
+            WHEN r BETWEEN 2 AND 5
+             AND f BETWEEN 3 AND 5
+             AND m BETWEEN 3 AND 5 THEN 'Loyalists'
+
+            WHEN r BETWEEN 4 AND 5
+             AND f BETWEEN 1 AND 3
+             AND m BETWEEN 1 AND 3 THEN 'Potential / New'
+
+            WHEN r BETWEEN 1 AND 2
+             AND f BETWEEN 1 AND 2
+             AND m BETWEEN 1 AND 2 THEN 'Hibernating'
+
+            WHEN r BETWEEN 1 AND 2
+             AND f BETWEEN 2 AND 5
+             AND m BETWEEN 2 AND 5 THEN 'At Risk'
+
+            ELSE 'Needs Attention'
+        END AS segment
+    FROM rfm_score
+)
+
+SELECT
+    customer_unique_id,
+    r,
+    f,
+    m,
+    segment
+FROM rfm_segment;
 
 
         
