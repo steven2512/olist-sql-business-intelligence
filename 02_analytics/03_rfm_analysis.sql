@@ -17,12 +17,61 @@ INNER JOIN (
     GROUP BY order_id
 ) p  
 ON o.order_id = p.order_id
-), rfm AS (
+), 
+
+rfm_raw AS (
     SELECT
         customer_unique_id,
         COUNT(*) AS total_orders,
         SUM(order_value) AS total_spent,
-        MAX(order_purchase_timestamp) AS most_recent_purchase_date
+        DATEDIFF(day, MAX(order_purchase_timestamp), (SELECT MAX(order_purchase_timestamp) FROM base)) AS recent_purchase_in_days
     FROM base
     GROUP BY customer_unique_id
-) SELECT * FROM rfm
+),
+
+rfm_percentile AS
+(
+SELECT
+    customer_unique_id,
+    CUME_DIST() OVER (ORDER BY recent_purchase_in_days) AS r_percentile,
+    CUME_DIST() OVER (ORDER BY total_orders DESC) AS f_percentile,
+    CUME_DIST() OVER (ORDER BY total_spent DESC) AS m_percentile
+FROM rfm_raw
+), rfm_score AS (
+    SELECT
+        customer_unique_id,
+        CASE 
+        WHEN r_percentile <= 0.2 THEN 5
+        WHEN r_percentile > 0.2 AND 
+             r_percentile <= 0.4 THEN 4
+        WHEN r_percentile > 0.4 AND 
+             r_percentile <= 0.6 THEN 3
+        WHEN r_percentile > 0.6 AND 
+             r_percentile <= 0.8 THEN 2
+        ELSE 1 END AS r,
+
+        CASE 
+        WHEN f_percentile <= 0.2 THEN 5
+        WHEN f_percentile > 0.2 AND 
+             f_percentile <= 0.4 THEN 4
+        WHEN f_percentile > 0.4 AND 
+             f_percentile <= 0.6 THEN 3
+        WHEN f_percentile > 0.6 AND 
+             f_percentile <= 0.8 THEN 2
+        ELSE 1 END AS f,
+
+        CASE 
+        WHEN m_percentile <= 0.2 THEN 5
+        WHEN m_percentile > 0.2 AND 
+             m_percentile <= 0.4 THEN 4
+        WHEN m_percentile > 0.4 AND 
+             m_percentile <= 0.6 THEN 3
+        WHEN m_percentile > 0.6 AND 
+             m_percentile <= 0.8 THEN 2
+        ELSE 1 END AS m
+    
+    FROM rfm_percentile
+) SELECT * FROM rfm_score
+
+
+        
