@@ -270,27 +270,44 @@ customer_share_file <- "D:/Data Engineering/olist-sql-business-intelligence/grap
 
 if (file.exists(customer_share_file)) {
   customer_share_df <- read.csv(customer_share_file)
-  customer_share_df$group_label <- "Customers"
   customer_share_df$customer_type <- factor(
     customer_share_df$customer_type,
     levels = c("One-time", "Repeat")
   )
 
+  customer_share_plot_df <- rbind(
+    data.frame(
+      metric_type = "Customer Share",
+      customer_type = customer_share_df$customer_type,
+      share = customer_share_df$customer_proportion
+    ),
+    data.frame(
+      metric_type = "Revenue Share",
+      customer_type = customer_share_df$customer_type,
+      share = customer_share_df$revenue_proportion
+    )
+  )
+
+  customer_share_plot_df$metric_type <- factor(
+    customer_share_plot_df$metric_type,
+    levels = c("Customer Share", "Revenue Share")
+  )
+
   customer_share_plot <- ggplot(
-    customer_share_df,
-    aes(x = group_label, y = customer_proportion, fill = customer_type)
+    customer_share_plot_df,
+    aes(x = metric_type, y = share, fill = customer_type)
   ) +
     geom_col(position = "fill", width = 0.6) +
     scale_y_continuous(labels = scales::percent) +
     scale_fill_manual(values = c("One-time" = "steelblue", "Repeat" = "darkorange")) +
     labs(
-      title = "Customer Share: One-time vs Repeat",
+      title = "Customer Share vs Revenue Share: One-time vs Repeat",
       x = NULL,
-      y = "Proportion of Customers",
+      y = "Proportion",
       fill = "Customer Type"
     ) +
     base_theme +
-    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+    theme(axis.text.x = element_text(angle = 0, hjust = 0.5))
 
   print(customer_share_plot)
 } else {

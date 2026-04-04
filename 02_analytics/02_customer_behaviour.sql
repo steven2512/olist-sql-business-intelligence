@@ -61,25 +61,33 @@ CROSS JOIN skewness sk;
 -- What share of customers purchase only once versus more than once?
 WITH customer_orders AS
 (SELECT
-    customer_unique_id,
-    COUNT(*) AS val
+    c.customer_unique_id,
+    COUNT(*) AS total_orders,
+    SUM(p.order_value) AS total_spent
 FROM orders o  
 INNER JOIN customers c  
 ON o.customer_id = c.customer_id
+INNER JOIN (
+    SELECT
+        order_id,
+        SUM(payment_value) AS order_value
+    FROM order_payments
+    GROUP BY order_id
+) p
+ON o.order_id = p.order_id
 WHERE LOWER(o.order_status) = 'delivered'
-GROUP BY c.customer_unique_id),
-total_orders AS (
-    SELECT 
-        COUNT(*) AS total_one_order,
-        CAST(COUNT(*) AS FLOAT) / 
-        (SELECT COUNT(*) FROM customer_orders) AS one_order_proportion,
-         1 - CAST(COUNT(*) AS FLOAT) / (SELECT COUNT(*)
-         FROM customer_orders) AS more_order_proportion
-    FROM customer_orders
-    WHERE val = 1
-) SELECT * FROM total_orders;
+GROUP BY c.customer_unique_id)
+SELECT
+    CASE WHEN total_orders = 1 THEN 'One-time' ELSE 'Repeat' END AS customer_type,
+    COUNT(*) AS customer_count,
+    CAST(COUNT(*) AS FLOAT) / SUM(COUNT(*)) OVER () AS customer_proportion,
+    SUM(total_spent) AS total_revenue,
+    CAST(SUM(total_spent) AS FLOAT) / SUM(SUM(total_spent)) OVER () AS revenue_proportion
+FROM customer_orders
+GROUP BY CASE WHEN total_orders = 1 THEN 'One-time' ELSE 'Repeat' END;
 
 -- ~97% of customers purchased only once, and 3% of customers purchase more than once
+-- One-time customers contribute the overwhelming majority of revenue, while repeat customers account for only a small share of total revenue.
 
 -- How long does it typically take for a customer to place a second order?
 WITH base AS
