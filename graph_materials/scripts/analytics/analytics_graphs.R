@@ -386,3 +386,113 @@ if (file.exists(items_comparison_file)) {
 } else {
   message("Export the items comparison SQL result to graph_materials/csv/repeat_vs_one_time_items.csv before running this section.")
 }
+
+# ============================================================
+# 03 RFM Analysis
+# ============================================================
+
+rfm_segment_file <- "D:/Data Engineering/olist-sql-business-intelligence/graph_materials/csv/rfm_segment_summary.csv"
+
+if (file.exists(rfm_segment_file)) {
+  rfm_df <- read.csv(rfm_segment_file)
+
+  segment_levels <- c(
+    "Champions",
+    "Loyalists",
+    "Potential / New",
+    "Needs Attention",
+    "At Risk",
+    "Hibernating"
+  )
+
+  segment_colors <- c(
+    "Champions" = "#1b9e77",
+    "Loyalists" = "#66a61e",
+    "Potential / New" = "#7570b3",
+    "Needs Attention" = "#e6ab02",
+    "At Risk" = "#d95f02",
+    "Hibernating" = "#b22222"
+  )
+
+  rfm_df$segment <- factor(rfm_df$segment, levels = segment_levels)
+  rfm_df <- rfm_df[order(rfm_df$segment), ]
+
+  rfm_customer_plot <- ggplot(rfm_df, aes(x = segment, y = total_customers, fill = segment)) +
+    geom_col(width = 0.7, show.legend = FALSE) +
+    scale_fill_manual(values = segment_colors) +
+    labs(
+      title = "Customer Count by RFM Segment",
+      x = "RFM Segment",
+      y = "Total Customers"
+    ) +
+    base_theme
+
+  rfm_revenue_plot <- ggplot(rfm_df, aes(x = segment, y = total_revenue, fill = segment)) +
+    geom_col(width = 0.7, show.legend = FALSE) +
+    scale_fill_manual(values = segment_colors) +
+    labs(
+      title = "Revenue by RFM Segment",
+      x = "RFM Segment",
+      y = "Total Revenue"
+    ) +
+    base_theme
+
+  rfm_avg_revenue_plot <- ggplot(rfm_df, aes(x = segment, y = avg_revenue, fill = segment)) +
+    geom_col(width = 0.7, show.legend = FALSE) +
+    scale_fill_manual(values = segment_colors) +
+    labs(
+      title = "Average Revenue per Customer by RFM Segment",
+      x = "RFM Segment",
+      y = "Average Revenue per Customer"
+    ) +
+    base_theme
+
+  rfm_share_df <- rbind(
+    data.frame(
+      segment = rfm_df$segment,
+      metric_type = "Customer Share",
+      share = rfm_df$cust_prop
+    ),
+    data.frame(
+      segment = rfm_df$segment,
+      metric_type = "Order Share",
+      share = rfm_df$orders_prop
+    ),
+    data.frame(
+      segment = rfm_df$segment,
+      metric_type = "Revenue Share",
+      share = rfm_df$rev_prop
+    )
+  )
+
+  rfm_share_df$metric_type <- factor(
+    rfm_share_df$metric_type,
+    levels = c("Customer Share", "Order Share", "Revenue Share")
+  )
+
+  rfm_share_plot <- ggplot(
+    rfm_share_df,
+    aes(x = metric_type, y = share, fill = segment)
+  ) +
+    geom_col(position = "fill", width = 0.7) +
+    scale_y_continuous(labels = scales::percent) +
+    scale_fill_manual(values = segment_colors) +
+    labs(
+      title = "Customer, Order, and Revenue Share by RFM Segment",
+      x = NULL,
+      y = "Proportion",
+      fill = "RFM Segment"
+    ) +
+    base_theme +
+    theme(
+      axis.text.x = element_text(angle = 0, hjust = 0.5),
+      legend.position = "top"
+    )
+
+  print(rfm_customer_plot)
+  print(rfm_revenue_plot)
+  print(rfm_avg_revenue_plot)
+  print(rfm_share_plot)
+} else {
+  message("Export the RFM segment summary SQL result to graph_materials/csv/rfm_segment_summary.csv before running this section.")
+}
