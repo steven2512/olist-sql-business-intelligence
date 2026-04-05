@@ -26,22 +26,36 @@ cohort_repeat AS (
     ON f.customer_unique_id = a.customer_unique_id
     GROUP BY cohort_month, DATEDIFF(month, cohort_month, purchase_month)
 ),
-all_purchase_months AS (
-    SELECT DISTINCT
-        purchase_month
-    FROM all_customer_buys
+date_bounds AS (
+    SELECT
+        MIN(cohort_month) AS min_cohort_month,
+        MAX(purchase_month) AS max_purchase_month
+    FROM first_customer_buy f
+    CROSS JOIN (
+        SELECT MAX(purchase_month) AS purchase_month
+        FROM all_customer_buys
+    ) p
+),
+month_numbers AS (
+    SELECT TOP (
+        SELECT DATEDIFF(month, min_cohort_month, max_purchase_month) + 1
+        FROM date_bounds
+    )
+        ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) - 1 AS month_offset
+    FROM sys.all_objects
 ),
 cohort_template AS (
-    SELECT DISTINCT
+    SELECT
         c.cohort_month,
-        DATEDIFF(month, c.cohort_month, m.purchase_month) AS month_offset
+        n.month_offset
     FROM (
         SELECT DISTINCT
             cohort_month
         FROM first_customer_buy
     ) c
-    INNER JOIN all_purchase_months m
-    ON m.purchase_month >= c.cohort_month
+    CROSS JOIN month_numbers n
+    CROSS JOIN date_bounds d
+    WHERE DATEADD(month, n.month_offset, c.cohort_month) <= d.max_purchase_month
 ),
 cohort_filled AS (
     SELECT

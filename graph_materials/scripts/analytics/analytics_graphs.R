@@ -513,3 +513,38 @@ if (file.exists(rfm_segment_file)) {
 } else {
   message("Export the RFM segment summary SQL result to graph_materials/csv/rfm_segment_summary.csv before running this section.")
 }
+
+# ============================================================
+# 04 Cohort Analysis
+# ============================================================
+
+cohort_file <- "D:/Data Engineering/olist-sql-business-intelligence/graph_materials/csv/cohort_retention.csv"
+
+if (file.exists(cohort_file)) {
+  cohort_df <- read.csv(cohort_file)
+  cohort_df$cohort_month <- as.Date(
+    cohort_df$cohort_month,
+    format = "%d/%m/%Y %I:%M:%S %p"
+  )
+  cohort_df$month_offset <- as.numeric(cohort_df$month_offset)
+  cohort_df$retention_rate <- as.numeric(cohort_df$retention_rate)
+
+  cohort_plot <- ggplot(cohort_df, aes(x = month_offset, y = cohort_month, fill = retention_rate)) +
+    geom_tile(color = "white") +
+    scale_y_date(
+      date_breaks = "1 month",
+      date_labels = "%b %Y"
+    ) +
+    scale_fill_gradient(low = "#f7fbff", high = "#08519c", labels = scales::percent) +
+    labs(
+      title = "Cohort Retention Heatmap",
+      x = "Months Since First Purchase",
+      y = "Cohort Month",
+      fill = "Retention"
+    ) +
+    theme_minimal()
+
+  print(cohort_plot)
+} else {
+  message("Export the cohort retention SQL result to graph_materials/csv/cohort_retention.csv before running this section.")
+}
