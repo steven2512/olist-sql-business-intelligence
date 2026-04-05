@@ -75,3 +75,9 @@ SELECT
 FROM cohort_filled
 ORDER BY cohort_month, month_offset
 
+-- Cohort retention is very weak overall, with most cohorts dropping sharply after the first purchase month.
+-- For the larger 2017 cohorts, month 1 retention is only around 0.2% - 0.7%, meaning only a very small fraction of customers returned in the following month.
+-- Retention falls even further by month 2 and month 3, where most cohorts are already near 0%.
+-- This suggests the overwhelming majority of customers make a first purchase, then do not return again in the following months.
+-- Overall, the cohort view strongly confirms that repeat purchase behaviour is extremely limited, at least in pure mathematical retention terms.
+
