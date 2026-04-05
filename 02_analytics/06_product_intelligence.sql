@@ -272,3 +272,44 @@ FROM product_profile
 WHERE revenue_percentile <= 0.20
 AND volume_percentile > 0.20
 ORDER BY total_revenue DESC, total_units_sold DESC;
+
+-- Which product groups show the strongest repeat purchase demand?
+;WITH customer_category_orders AS (
+    SELECT
+        COALESCE(p.product_category_name, 'unknown') AS product_category_name,
+        c.customer_unique_id,
+        COUNT(DISTINCT o.order_id) AS total_orders
+    FROM orders o
+    INNER JOIN customers c
+    ON o.customer_id = c.customer_id
+    INNER JOIN order_items i
+    ON o.order_id = i.order_id
+    LEFT JOIN products p
+    ON i.product_id = p.product_id
+    WHERE LOWER(o.order_status) = 'delivered'
+    GROUP BY
+        COALESCE(p.product_category_name, 'unknown'),
+        c.customer_unique_id
+),
+repeat_demand AS (
+    SELECT
+        product_category_name,
+        COUNT(*) AS total_customers,
+        SUM(CASE WHEN total_orders >= 2 THEN 1 ELSE 0 END) AS repeat_customers,
+        CAST(SUM(CASE WHEN total_orders >= 2 THEN 1 ELSE 0 END) AS FLOAT) / COUNT(*) AS repeat_customer_share,
+        AVG(CAST(total_orders AS FLOAT)) AS avg_orders_per_customer
+    FROM customer_category_orders
+    GROUP BY product_category_name
+)
+SELECT TOP 10
+    product_category_name,
+    total_customers,
+    repeat_customers,
+    repeat_customer_share,
+    avg_orders_per_customer
+FROM repeat_demand
+WHERE total_customers >= 100
+ORDER BY repeat_customer_share DESC, repeat_customers DESC;
+-- Repeat purchase demand is weak overall, with even the strongest categories still showing a low repeat-customer share.
+-- Eletrodomesticos leads at about 7.3%, but on a much smaller base than the biggest categories.
+-- Among the larger categories, cama_mesa_banho, esporte_lazer, and moveis_decoracao show the strongest repeat demand, though all still remain below 3%.
