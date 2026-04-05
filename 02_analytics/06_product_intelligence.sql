@@ -1,9 +1,14 @@
 USE Olist;
+DROP TABLE IF EXISTS #product_summary;
+DROP TABLE IF EXISTS #category_summary;
+DROP TABLE IF EXISTS #product_profile;
+DROP TABLE IF EXISTS #product_monthly_revenue;
+DROP TABLE IF EXISTS #category_monthly_revenue;
 DROP TABLE IF EXISTS #top_10_product_revenue;
 DROP TABLE IF EXISTS #top_10_category_revenue;
 
 -- Which products and categories generate the most revenue, order frequency, and units sold?
-SELECT TOP 10
+SELECT
     i.product_id,
     MAX(COALESCE(p.product_category_name, 'unknown')) AS product_category_name,
     SUM(i.price + i.freight_value) AS total_revenue,
@@ -12,8 +17,11 @@ SELECT TOP 10
     DATEDIFF(month, MIN(o.order_purchase_timestamp), MAX(o.order_purchase_timestamp)) + 1 AS active_months,
     CAST(COUNT(DISTINCT o.order_id) AS FLOAT)
         / NULLIF(DATEDIFF(month, MIN(o.order_purchase_timestamp), MAX(o.order_purchase_timestamp)) + 1, 0)
-        AS avg_orders_per_active_month
-INTO #top_10_product_revenue
+        AS avg_orders_per_active_month,
+    CAST(COUNT(*) AS FLOAT)
+        / NULLIF(DATEDIFF(month, MIN(o.order_purchase_timestamp), MAX(o.order_purchase_timestamp)) + 1, 0)
+        AS avg_units_per_active_month
+INTO #product_summary
 FROM order_items i
 INNER JOIN orders o
 ON i.order_id = o.order_id
@@ -21,6 +29,19 @@ LEFT JOIN products p
 ON i.product_id = p.product_id
 WHERE LOWER(o.order_status) = 'delivered'
 GROUP BY i.product_id
+;
+
+SELECT TOP 10
+    product_id,
+    product_category_name,
+    total_revenue,
+    total_orders,
+    total_units_sold,
+    active_months,
+    avg_orders_per_active_month,
+    avg_units_per_active_month
+INTO #top_10_product_revenue
+FROM #product_summary
 ORDER BY total_revenue DESC;
 
 SELECT *
@@ -28,40 +49,30 @@ FROM #top_10_product_revenue
 ORDER BY total_revenue DESC;
 
 SELECT TOP 10
-    i.product_id,
-    MAX(COALESCE(p.product_category_name, 'unknown')) AS product_category_name,
-    SUM(i.price + i.freight_value) AS total_revenue,
-    COUNT(DISTINCT o.order_id) AS total_orders,
-    COUNT(*) AS total_units_sold,
-    DATEDIFF(month, MIN(o.order_purchase_timestamp), MAX(o.order_purchase_timestamp)) + 1 AS active_months,
-    CAST(COUNT(DISTINCT o.order_id) AS FLOAT)
-        / NULLIF(DATEDIFF(month, MIN(o.order_purchase_timestamp), MAX(o.order_purchase_timestamp)) + 1, 0)
-        AS avg_orders_per_active_month
-FROM order_items i
-INNER JOIN orders o
-ON i.order_id = o.order_id
-LEFT JOIN products p
-ON i.product_id = p.product_id
-WHERE LOWER(o.order_status) = 'delivered'
-GROUP BY i.product_id
-ORDER BY total_orders DESC;
+    product_id,
+    product_category_name,
+    total_revenue,
+    total_orders,
+    total_units_sold,
+    active_months,
+    avg_orders_per_active_month,
+    avg_units_per_active_month
+FROM #product_summary
+ORDER BY avg_orders_per_active_month DESC, total_orders DESC;
 
 SELECT TOP 10
-    i.product_id,
-    MAX(COALESCE(p.product_category_name, 'unknown')) AS product_category_name,
-    SUM(i.price + i.freight_value) AS total_revenue,
-    COUNT(DISTINCT o.order_id) AS total_orders,
-    COUNT(*) AS total_units_sold
-FROM order_items i
-INNER JOIN orders o
-ON i.order_id = o.order_id
-LEFT JOIN products p
-ON i.product_id = p.product_id
-WHERE LOWER(o.order_status) = 'delivered'
-GROUP BY i.product_id
+    product_id,
+    product_category_name,
+    total_revenue,
+    total_orders,
+    total_units_sold,
+    active_months,
+    avg_orders_per_active_month,
+    avg_units_per_active_month
+FROM #product_summary
 ORDER BY total_units_sold DESC;
 
-SELECT TOP 10
+SELECT
     COALESCE(p.product_category_name, 'unknown') AS product_category_name,
     SUM(i.price + i.freight_value) AS total_revenue,
     COUNT(DISTINCT o.order_id) AS total_orders,
@@ -69,8 +80,11 @@ SELECT TOP 10
     DATEDIFF(month, MIN(o.order_purchase_timestamp), MAX(o.order_purchase_timestamp)) + 1 AS active_months,
     CAST(COUNT(DISTINCT o.order_id) AS FLOAT)
         / NULLIF(DATEDIFF(month, MIN(o.order_purchase_timestamp), MAX(o.order_purchase_timestamp)) + 1, 0)
-        AS avg_orders_per_active_month
-INTO #top_10_category_revenue
+        AS avg_orders_per_active_month,
+    CAST(COUNT(*) AS FLOAT)
+        / NULLIF(DATEDIFF(month, MIN(o.order_purchase_timestamp), MAX(o.order_purchase_timestamp)) + 1, 0)
+        AS avg_units_per_active_month
+INTO #category_summary
 FROM order_items i
 INNER JOIN orders o
 ON i.order_id = o.order_id
@@ -78,6 +92,18 @@ LEFT JOIN products p
 ON i.product_id = p.product_id
 WHERE LOWER(o.order_status) = 'delivered'
 GROUP BY COALESCE(p.product_category_name, 'unknown')
+;
+
+SELECT TOP 10
+    product_category_name,
+    total_revenue,
+    total_orders,
+    total_units_sold,
+    active_months,
+    avg_orders_per_active_month,
+    avg_units_per_active_month
+INTO #top_10_category_revenue
+FROM #category_summary
 ORDER BY total_revenue DESC;
 
 SELECT *
@@ -85,35 +111,25 @@ FROM #top_10_category_revenue
 ORDER BY total_revenue DESC;
 
 SELECT TOP 10
-    COALESCE(p.product_category_name, 'unknown') AS product_category_name,
-    SUM(i.price + i.freight_value) AS total_revenue,
-    COUNT(DISTINCT o.order_id) AS total_orders,
-    COUNT(*) AS total_units_sold,
-    DATEDIFF(month, MIN(o.order_purchase_timestamp), MAX(o.order_purchase_timestamp)) + 1 AS active_months,
-    CAST(COUNT(DISTINCT o.order_id) AS FLOAT)
-        / NULLIF(DATEDIFF(month, MIN(o.order_purchase_timestamp), MAX(o.order_purchase_timestamp)) + 1, 0)
-        AS avg_orders_per_active_month
-FROM order_items i
-INNER JOIN orders o
-ON i.order_id = o.order_id
-LEFT JOIN products p
-ON i.product_id = p.product_id
-WHERE LOWER(o.order_status) = 'delivered'
-GROUP BY COALESCE(p.product_category_name, 'unknown')
-ORDER BY total_orders DESC;
+    product_category_name,
+    total_revenue,
+    total_orders,
+    total_units_sold,
+    active_months,
+    avg_orders_per_active_month,
+    avg_units_per_active_month
+FROM #category_summary
+ORDER BY avg_orders_per_active_month DESC, total_orders DESC;
 
 SELECT TOP 10
-    COALESCE(p.product_category_name, 'unknown') AS product_category_name,
-    SUM(i.price + i.freight_value) AS total_revenue,
-    COUNT(DISTINCT o.order_id) AS total_orders,
-    COUNT(*) AS total_units_sold
-FROM order_items i
-INNER JOIN orders o
-ON i.order_id = o.order_id
-LEFT JOIN products p
-ON i.product_id = p.product_id
-WHERE LOWER(o.order_status) = 'delivered'
-GROUP BY COALESCE(p.product_category_name, 'unknown')
+    product_category_name,
+    total_revenue,
+    total_orders,
+    total_units_sold,
+    active_months,
+    avg_orders_per_active_month,
+    avg_units_per_active_month
+FROM #category_summary
 ORDER BY total_units_sold DESC;
 -- At product level, revenue leadership is concentrated in a small set of standout items, especially across beleza_saude, informatica_acessorios, and cama_mesa_banho.
 -- In order frequency and units sold, products from moveis_decoracao, cama_mesa_banho, and ferramentas_jardim appear more often, suggesting they win more through repeated volume than premium ticket size.
@@ -217,64 +233,49 @@ CROSS JOIN top_20;
 -- top 20% of categories account for 74.3% of revenue, suggesting revenue is also concentrated at category level, though less dominated by the very top few groups
 
 -- Which products are high volume but low value, and which are high value but low volume?
-;WITH product_profile AS (
-    SELECT
-        i.product_id,
-        MAX(COALESCE(p.product_category_name, 'unknown')) AS product_category_name,
-        SUM(i.price + i.freight_value) AS total_revenue,
-        COUNT(*) AS total_units_sold,
-        CAST(SUM(i.price + i.freight_value) AS FLOAT) / NULLIF(COUNT(*), 0) AS avg_unit_revenue,
-        CUME_DIST() OVER (ORDER BY COUNT(*) DESC) AS volume_percentile,
-        CUME_DIST() OVER (ORDER BY SUM(i.price + i.freight_value) DESC) AS revenue_percentile
-    FROM order_items i
-    INNER JOIN orders o
-    ON i.order_id = o.order_id
-    LEFT JOIN products p
-    ON i.product_id = p.product_id
-    WHERE LOWER(o.order_status) = 'delivered'
-    GROUP BY i.product_id
-)
+SELECT
+    i.product_id,
+    MAX(COALESCE(p.product_category_name, 'unknown')) AS product_category_name,
+    SUM(i.price + i.freight_value) AS total_revenue,
+    COUNT(*) AS total_units_sold,
+    CAST(SUM(i.price + i.freight_value) AS FLOAT) / NULLIF(COUNT(*), 0) AS avg_unit_revenue,
+    CUME_DIST() OVER (ORDER BY COUNT(*) DESC) AS volume_percentile,
+    CUME_DIST() OVER (ORDER BY SUM(i.price + i.freight_value) DESC) AS revenue_percentile
+INTO #product_profile
+FROM order_items i
+INNER JOIN orders o
+ON i.order_id = o.order_id
+LEFT JOIN products p
+ON i.product_id = p.product_id
+WHERE LOWER(o.order_status) = 'delivered'
+GROUP BY i.product_id
+;
+
 SELECT TOP 10
     product_id,
     product_category_name,
     total_units_sold,
     total_revenue,
     avg_unit_revenue
-FROM product_profile
+FROM #product_profile
 WHERE volume_percentile <= 0.20
 AND revenue_percentile > 0.20
 ORDER BY total_units_sold DESC, total_revenue DESC;
--- High volume but low value products are mostly low-ticket items, with avg unit revenue generally staying around 18 - 30.
--- High value but low volume products are the opposite: they sell only 1 - 3 units, but each unit is very expensive, often above 2k.
--- This suggests some products drive sales through scale, while others contribute through very high ticket size despite weak volume.
 
-;WITH product_profile AS (
-    SELECT
-        i.product_id,
-        MAX(COALESCE(p.product_category_name, 'unknown')) AS product_category_name,
-        SUM(i.price + i.freight_value) AS total_revenue,
-        COUNT(*) AS total_units_sold,
-        CAST(SUM(i.price + i.freight_value) AS FLOAT) / NULLIF(COUNT(*), 0) AS avg_unit_revenue,
-        CUME_DIST() OVER (ORDER BY COUNT(*) DESC) AS volume_percentile,
-        CUME_DIST() OVER (ORDER BY SUM(i.price + i.freight_value) DESC) AS revenue_percentile
-    FROM order_items i
-    INNER JOIN orders o
-    ON i.order_id = o.order_id
-    LEFT JOIN products p
-    ON i.product_id = p.product_id
-    WHERE LOWER(o.order_status) = 'delivered'
-    GROUP BY i.product_id
-)
+
 SELECT TOP 10
     product_id,
     product_category_name,
     total_units_sold,
     total_revenue,
     avg_unit_revenue
-FROM product_profile
+FROM #product_profile
 WHERE revenue_percentile <= 0.20
 AND volume_percentile > 0.20
 ORDER BY total_revenue DESC, total_units_sold DESC;
+-- High volume but low value products are mostly low-ticket items, with avg unit revenue generally staying around 18 - 30.
+-- High value but low volume products are the opposite: they sell only 1 - 3 units, but each unit is very expensive, often above 2k.
+-- This suggests some products drive sales through scale, while others contribute through very high ticket size despite weak volume.
 
 -- Which product groups show the strongest repeat purchase demand?
 ;WITH customer_category_orders AS (
@@ -318,49 +319,33 @@ ORDER BY repeat_customer_share DESC, repeat_customers DESC;
 -- Among the larger categories, cama_mesa_banho, esporte_lazer, and moveis_decoracao show the strongest repeat demand, though all still remain below 3%.
 
 -- Which products or categories are growing or declining over time?
-;WITH product_monthly_revenue AS (
-    SELECT
-        t.product_id,
-        t.product_category_name,
-        CAST(DATETRUNC(month, o.order_purchase_timestamp) AS date) AS month_year,
-        SUM(i.price + i.freight_value) AS month_revenue
-    FROM #top_10_product_revenue t
-    INNER JOIN order_items i
-    ON t.product_id = i.product_id
-    INNER JOIN orders o
-    ON i.order_id = o.order_id
-    WHERE LOWER(o.order_status) = 'delivered'
-    GROUP BY
-        t.product_id,
-        t.product_category_name,
-        DATETRUNC(month, o.order_purchase_timestamp)
-)
+SELECT
+    t.product_id,
+    t.product_category_name,
+    CAST(DATETRUNC(month, o.order_purchase_timestamp) AS date) AS month_year,
+    SUM(i.price + i.freight_value) AS month_revenue
+INTO #product_monthly_revenue
+FROM #top_10_product_revenue t
+INNER JOIN order_items i
+ON t.product_id = i.product_id
+INNER JOIN orders o
+ON i.order_id = o.order_id
+WHERE LOWER(o.order_status) = 'delivered'
+GROUP BY
+    t.product_id,
+    t.product_category_name,
+    DATETRUNC(month, o.order_purchase_timestamp)
+;
+
 SELECT
     product_id,
     product_category_name,
     month_year,
     month_revenue
-FROM product_monthly_revenue
+FROM #product_monthly_revenue
 ORDER BY product_id, month_year;
 
-;WITH product_monthly_revenue AS (
-    SELECT
-        t.product_id,
-        t.product_category_name,
-        CAST(DATETRUNC(month, o.order_purchase_timestamp) AS date) AS month_year,
-        SUM(i.price + i.freight_value) AS month_revenue
-    FROM #top_10_product_revenue t
-    INNER JOIN order_items i
-    ON t.product_id = i.product_id
-    INNER JOIN orders o
-    ON i.order_id = o.order_id
-    WHERE LOWER(o.order_status) = 'delivered'
-    GROUP BY
-        t.product_id,
-        t.product_category_name,
-        DATETRUNC(month, o.order_purchase_timestamp)
-),
-product_trend AS (
+;WITH product_trend AS (
     SELECT
         product_id,
         product_category_name,
@@ -368,7 +353,7 @@ product_trend AS (
         month_revenue,
         ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY month_year) AS first_month_order,
         ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY month_year DESC) AS last_month_order
-    FROM product_monthly_revenue
+    FROM #product_monthly_revenue
 )
 SELECT
     f.product_id,
@@ -386,55 +371,39 @@ WHERE f.first_month_order = 1
 AND l.last_month_order = 1
 ORDER BY revenue_change DESC;
 
-;WITH category_monthly_revenue AS (
-    SELECT
-        t.product_category_name,
-        CAST(DATETRUNC(month, o.order_purchase_timestamp) AS date) AS month_year,
-        SUM(i.price + i.freight_value) AS month_revenue
-    FROM #top_10_category_revenue t
-    INNER JOIN products p
-    ON t.product_category_name = COALESCE(p.product_category_name, 'unknown')
-    INNER JOIN order_items i
-    ON p.product_id = i.product_id
-    INNER JOIN orders o
-    ON i.order_id = o.order_id
-    WHERE LOWER(o.order_status) = 'delivered'
-    GROUP BY
-        t.product_category_name,
-        DATETRUNC(month, o.order_purchase_timestamp)
-)
+SELECT
+    t.product_category_name,
+    CAST(DATETRUNC(month, o.order_purchase_timestamp) AS date) AS month_year,
+    SUM(i.price + i.freight_value) AS month_revenue
+INTO #category_monthly_revenue
+FROM #top_10_category_revenue t
+INNER JOIN products p
+ON t.product_category_name = COALESCE(p.product_category_name, 'unknown')
+INNER JOIN order_items i
+ON p.product_id = i.product_id
+INNER JOIN orders o
+ON i.order_id = o.order_id
+WHERE LOWER(o.order_status) = 'delivered'
+GROUP BY
+    t.product_category_name,
+    DATETRUNC(month, o.order_purchase_timestamp)
+;
+
 SELECT
     product_category_name,
     month_year,
     month_revenue
-FROM category_monthly_revenue
+FROM #category_monthly_revenue
 ORDER BY product_category_name, month_year;
 
-;WITH category_monthly_revenue AS (
-    SELECT
-        t.product_category_name,
-        CAST(DATETRUNC(month, o.order_purchase_timestamp) AS date) AS month_year,
-        SUM(i.price + i.freight_value) AS month_revenue
-    FROM #top_10_category_revenue t
-    INNER JOIN products p
-    ON t.product_category_name = COALESCE(p.product_category_name, 'unknown')
-    INNER JOIN order_items i
-    ON p.product_id = i.product_id
-    INNER JOIN orders o
-    ON i.order_id = o.order_id
-    WHERE LOWER(o.order_status) = 'delivered'
-    GROUP BY
-        t.product_category_name,
-        DATETRUNC(month, o.order_purchase_timestamp)
-),
-category_trend AS (
+;WITH category_trend AS (
     SELECT
         product_category_name,
         month_year,
         month_revenue,
         ROW_NUMBER() OVER (PARTITION BY product_category_name ORDER BY month_year) AS first_month_order,
         ROW_NUMBER() OVER (PARTITION BY product_category_name ORDER BY month_year DESC) AS last_month_order
-    FROM category_monthly_revenue
+    FROM #category_monthly_revenue
 )
 SELECT
     f.product_category_name,
