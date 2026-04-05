@@ -115,6 +115,9 @@ ON i.product_id = p.product_id
 WHERE LOWER(o.order_status) = 'delivered'
 GROUP BY COALESCE(p.product_category_name, 'unknown')
 ORDER BY total_units_sold DESC;
+-- At product level, revenue leadership is concentrated in a small set of standout items, especially across beleza_saude, informatica_acessorios, and cama_mesa_banho.
+-- In order frequency and units sold, products from moveis_decoracao, cama_mesa_banho, and ferramentas_jardim appear more often, suggesting they win more through repeated volume than premium ticket size.
+-- At category level, beleza_saude leads total revenue, while cama_mesa_banho leads total orders and total units sold, making it the clearest high-volume category overall.
 
 -- How concentrated are sales among the top products and categories?
 ;WITH product_revenue AS (
@@ -313,3 +316,140 @@ ORDER BY repeat_customer_share DESC, repeat_customers DESC;
 -- Repeat purchase demand is weak overall, with even the strongest categories still showing a low repeat-customer share.
 -- Eletrodomesticos leads at about 7.3%, but on a much smaller base than the biggest categories.
 -- Among the larger categories, cama_mesa_banho, esporte_lazer, and moveis_decoracao show the strongest repeat demand, though all still remain below 3%.
+
+-- Which products or categories are growing or declining over time?
+;WITH product_monthly_revenue AS (
+    SELECT
+        t.product_id,
+        t.product_category_name,
+        CAST(DATETRUNC(month, o.order_purchase_timestamp) AS date) AS month_year,
+        SUM(i.price + i.freight_value) AS month_revenue
+    FROM #top_10_product_revenue t
+    INNER JOIN order_items i
+    ON t.product_id = i.product_id
+    INNER JOIN orders o
+    ON i.order_id = o.order_id
+    WHERE LOWER(o.order_status) = 'delivered'
+    GROUP BY
+        t.product_id,
+        t.product_category_name,
+        DATETRUNC(month, o.order_purchase_timestamp)
+)
+SELECT
+    product_id,
+    product_category_name,
+    month_year,
+    month_revenue
+FROM product_monthly_revenue
+ORDER BY product_id, month_year;
+
+;WITH product_monthly_revenue AS (
+    SELECT
+        t.product_id,
+        t.product_category_name,
+        CAST(DATETRUNC(month, o.order_purchase_timestamp) AS date) AS month_year,
+        SUM(i.price + i.freight_value) AS month_revenue
+    FROM #top_10_product_revenue t
+    INNER JOIN order_items i
+    ON t.product_id = i.product_id
+    INNER JOIN orders o
+    ON i.order_id = o.order_id
+    WHERE LOWER(o.order_status) = 'delivered'
+    GROUP BY
+        t.product_id,
+        t.product_category_name,
+        DATETRUNC(month, o.order_purchase_timestamp)
+),
+product_trend AS (
+    SELECT
+        product_id,
+        product_category_name,
+        month_year,
+        month_revenue,
+        ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY month_year) AS first_month_order,
+        ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY month_year DESC) AS last_month_order
+    FROM product_monthly_revenue
+)
+SELECT
+    f.product_id,
+    f.product_category_name,
+    f.month_year AS first_active_month,
+    f.month_revenue AS first_month_revenue,
+    l.month_year AS last_active_month,
+    l.month_revenue AS last_month_revenue,
+    l.month_revenue - f.month_revenue AS revenue_change,
+    CAST((l.month_revenue - f.month_revenue) * 100.0 / NULLIF(f.month_revenue, 0) AS FLOAT) AS revenue_change_pct
+FROM product_trend f
+INNER JOIN product_trend l
+ON f.product_id = l.product_id
+WHERE f.first_month_order = 1
+AND l.last_month_order = 1
+ORDER BY revenue_change DESC;
+
+;WITH category_monthly_revenue AS (
+    SELECT
+        t.product_category_name,
+        CAST(DATETRUNC(month, o.order_purchase_timestamp) AS date) AS month_year,
+        SUM(i.price + i.freight_value) AS month_revenue
+    FROM #top_10_category_revenue t
+    INNER JOIN products p
+    ON t.product_category_name = COALESCE(p.product_category_name, 'unknown')
+    INNER JOIN order_items i
+    ON p.product_id = i.product_id
+    INNER JOIN orders o
+    ON i.order_id = o.order_id
+    WHERE LOWER(o.order_status) = 'delivered'
+    GROUP BY
+        t.product_category_name,
+        DATETRUNC(month, o.order_purchase_timestamp)
+)
+SELECT
+    product_category_name,
+    month_year,
+    month_revenue
+FROM category_monthly_revenue
+ORDER BY product_category_name, month_year;
+
+;WITH category_monthly_revenue AS (
+    SELECT
+        t.product_category_name,
+        CAST(DATETRUNC(month, o.order_purchase_timestamp) AS date) AS month_year,
+        SUM(i.price + i.freight_value) AS month_revenue
+    FROM #top_10_category_revenue t
+    INNER JOIN products p
+    ON t.product_category_name = COALESCE(p.product_category_name, 'unknown')
+    INNER JOIN order_items i
+    ON p.product_id = i.product_id
+    INNER JOIN orders o
+    ON i.order_id = o.order_id
+    WHERE LOWER(o.order_status) = 'delivered'
+    GROUP BY
+        t.product_category_name,
+        DATETRUNC(month, o.order_purchase_timestamp)
+),
+category_trend AS (
+    SELECT
+        product_category_name,
+        month_year,
+        month_revenue,
+        ROW_NUMBER() OVER (PARTITION BY product_category_name ORDER BY month_year) AS first_month_order,
+        ROW_NUMBER() OVER (PARTITION BY product_category_name ORDER BY month_year DESC) AS last_month_order
+    FROM category_monthly_revenue
+)
+SELECT
+    f.product_category_name,
+    f.month_year AS first_active_month,
+    f.month_revenue AS first_month_revenue,
+    l.month_year AS last_active_month,
+    l.month_revenue AS last_month_revenue,
+    l.month_revenue - f.month_revenue AS revenue_change,
+    CAST((l.month_revenue - f.month_revenue) * 100.0 / NULLIF(f.month_revenue, 0) AS FLOAT) AS revenue_change_pct
+FROM category_trend f
+INNER JOIN category_trend l
+ON f.product_category_name = l.product_category_name
+WHERE f.first_month_order = 1
+AND l.last_month_order = 1
+ORDER BY revenue_change DESC;
+-- At product level, growth is mixed: bb50f2..., 25c385..., and d1c427... show the strongest first-to-last month gains, while 3dd2a1..., d6160f..., and 53b36d... decline the most.
+-- At category level, the trend is much more consistently positive, with beleza_saude, cama_mesa_banho, and relogios_presentes showing the largest raw revenue gains over time.
+-- Overall, top categories keep expanding across the dataset, while individual top products are much more volatile and easier to replace.
