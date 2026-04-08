@@ -1,271 +1,232 @@
 # Olist SQL Business Intelligence
 
-End-to-end business intelligence project on 100k+ real Brazilian e-commerce orders from Olist.
+> End-to-end marketplace analytics project built on real Olist e-commerce data using SQL as the analytical engine, R as the exploratory visualization layer, and Excel / Power BI as the business-facing reporting layer.
 
-This project goes beyond writing SQL queries. It is structured as a full analytics workflow:
-- SQL for data exploration, data quality auditing, KPI logic, segmentation, and business analysis
-- R for charting, exploratory visuals, and analytical validation
-- Excel for analyst-friendly reporting packs and last-mile business review outputs
-- Power BI for stakeholder-facing dashboards and interactive presentation of final insights
+## At A Glance
 
-The goal is to analyze the marketplace from the perspective of the operator: how the business grows, where revenue is concentrated, how customers behave, how sellers and products perform, and where operational weaknesses exist.
-
----
-
-## Project Status
-In Progress - Advanced analytics built in SQL, with reporting and dashboard delivery layers being added through Excel and Power BI.
-
-Current state:
-- Core EDA and data quality work completed
-- Overview metrics completed
-- Geolocation exploration completed
-- Distribution exploration completed
-- Business performance completed
-- Customer behaviour completed
-- RFM analysis completed
-- Cohort analysis completed
-- Seller performance completed
-- Product intelligence completed
-- Review, logistics, payment, reporting, and validation layers still being expanded
-
----
-
-## What This Project Demonstrates
-- Translating business questions into structured SQL analysis
-- Auditing raw marketplace data before trusting downstream metrics
-- Building reusable analytical logic for customer, seller, and product performance
-- Converting SQL outputs into chart-ready datasets for downstream reporting
-- Combining technical analysis with business storytelling rather than stopping at query output
-
----
-
-## Business Questions Covered
-
-### 1. Business Performance
-- How are monthly orders, revenue, and average order value changing over time?
-- Which months are the strongest and weakest by revenue?
-- How much of monthly business comes from new customers versus repeat customers?
-- How concentrated is total revenue across customers, sellers, and products?
-
-### 2. Customer Behaviour
-- How many orders does a typical customer place?
-- What share of customers purchase only once versus more than once?
-- How long does it typically take for a customer to place a second order?
-- Do repeat customers spend more or buy more items per order?
-
-### 3. Customer Segmentation
-- How should recency, frequency, and monetary value be measured at customer level?
-- Which RFM segments drive the most orders and revenue?
-- Which segments appear most at risk of churn?
-
-### 4. Cohort Retention
-- What share of each customer cohort returns in later months?
-- Where does retention drop off most sharply?
-- Which cohorts retain best and generate the most revenue over time?
-
-### 5. Seller Performance
-- Which sellers lead in revenue, orders, and units sold?
-- How concentrated is seller-side marketplace performance?
-- Are top sellers also stronger in reviews and delivery outcomes?
-- Which leading sellers are growing and which are declining?
-
-### 6. Product Intelligence
-- Which products and categories lead revenue, volume, and order frequency?
-- How concentrated is sales performance across products and categories?
-- Which products are high-volume/low-value versus high-value/low-volume?
-- Which categories show the strongest repeat purchase demand?
-
-### 7. Remaining Buildout
-- Review patterns
-- Logistics quality
-- Payment behaviour
-- Final report tables
-- Cross-check validation layer
-- Excel reporting pack
-- Power BI dashboard
-
----
-
-## Dataset
-- **Source:** [Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)
-- **Size:** 100k+ orders across 9 tables
-- **Period:** September 2016 to October 2018
-- **Context:** Olist is a Brazilian marketplace connecting small businesses to customers nationwide
-
-Core entities used:
-- orders
-- customers
-- sellers
-- order_items
-- order_payments
-- order_reviews
-- products
-- product_category_name_translation
-- geolocation
-
----
-
-## Assumptions and Definitions
-
-Read this section before interpreting any figures in the project.
-
-**Perspective**  
-All analysis is framed around what Olist as the marketplace operator can influence, incentivize, or act upon.
-
-**GMV / Revenue**  
-Throughout the project, GMV is defined as total customer payment value per delivered order, inclusive of freight. GMV and revenue are used interchangeably. Source column: `payment_value` from `order_payments`.
-
-**Commission Rate**  
-During the dataset period, Olist's commission structure covered partner marketplace fees plus its own operating margin. This project uses a conservative midpoint assumption of **~20%** as the effective commission rate applied to delivered GMV.
-
-The commonly repeated 10% figure seen in some online notebooks is not used here.
-
-**Scope**  
-Main business calculations are based on confirmed and successfully delivered orders unless a section explicitly states otherwise. Cancelled, unavailable, or undelivered orders are excluded from core performance metrics.
-
-**Customer Identity**  
-`customer_unique_id` is treated as the real customer identifier.  
-`customer_id` is order-instance specific and should not be used as the long-term customer key.
-
----
-
-## Tools
-- Microsoft SQL Server
-- T-SQL
-- R
-- ggplot2
-- Excel
-- Power BI
-- Git / GitHub
-
-Tool roles in this project:
-- **SQL Server / T-SQL:** core analysis, data quality checks, metric definitions, segmentation, and business logic
-- **R / ggplot2:** exploratory charting, distribution visuals, and analytical support graphics
-- **Excel:** reporting pack layer for analyst-friendly summaries, pivots, and business review tables
-- **Power BI:** stakeholder-facing dashboard layer for interactive KPI and insight presentation
-
-Excel and Power BI are being integrated as the final business delivery layer so the project shows not only analysis, but also reporting and stakeholder communication.
-
----
-
-## Workflow
-1. Explore database structure, grain, and date ranges
-2. Audit nulls, duplicates, invalid values, consistency, and inferred referential integrity
-3. Build overview metrics to establish platform scale and operating health
-4. Develop business-theme SQL analysis files
-5. Export selected SQL outputs to CSV
-6. Visualize analytical outputs in R
-7. Package key outputs into Excel and Power BI for business-facing delivery
-
----
-
-## Current Findings
-
-These are partial findings from the work completed so far and will be expanded as the remaining themes are finished.
-
-### Platform Scale and Operating Health
-- The dataset contains **99,441 total orders**, **96,096 unique customers**, **3,095 sellers**, and **32,951 products**
-- Based on delivered orders, approximately **32,216 products** have been sold across **73 product categories**
-- Delivered GMV is approximately **15.42M**, implying estimated platform revenue of roughly **3.08M** under the 20% commission assumption
-- Average order value is about **159.86**
-- Average review score is about **4.09 / 5**
-- Average delivery time is about **12 days**, with a **10-day median**
-- Freight accounts for roughly **14.25% of GMV**
-
-### Customer Behaviour
-- The customer base is overwhelmingly one-time: roughly **97%** of customers purchase only once
-- Repeat behaviour is weak, with only about **3%** of customers placing more than one order
-- Customers who do return typically place their second order about **29 days** after their first purchase when measured by the median
-- Repeat customers buy slightly more items per order, but one-time customers currently appear to spend more per order on average
-
-### Revenue Concentration
-- Revenue is moderately concentrated at customer level: the **top 20% of customers generate about 53.5% of GMV**
-- Seller concentration is much stronger: the **top 20% of sellers generate about 82% of GMV**
-- Product concentration is also high: the **top 20% of products generate about 73% of GMV**
-- Overall, marketplace value is driven disproportionately by a relatively small share of sellers and products
-
-### Customer Segmentation and Retention
-- Current RFM segmentation suggests a very large share of customers fall into lower-engagement groups such as **Needs Attention** and **Hibernating**
-- High-value groups such as **Champions** and **Loyalists** are small in number, even though they spend more on average
-- Cohort retention is weak overall, with most cohorts dropping sharply after the first purchase month
-- The project so far points to a marketplace that is much stronger at acquisition than retention
-
-### Geography and Marketplace Structure
-- Customer demand is concentrated geographically, with Sao Paulo representing the largest customer base
-- Seller supply is even more concentrated, with Sao Paulo dominating seller presence
-- Roughly **63%** of item units move across regions rather than staying within the same state flow
-- This suggests the marketplace relies heavily on cross-region fulfillment rather than purely local matching
-
-### Product and Seller Insights
-- Category leadership is concentrated in a relatively small number of standout categories
-- High-volume products and high-value products are often not the same products
-- Top categories tend to show more stable growth than individual top products
-- Among top sellers, growth is uneven, with a few strong gainers carrying much of the upside
-
----
-
-## Project Structure
-| Folder | Purpose |
+| Item | Details |
 |---|---|
-| `01_eda` | Database exploration, grain checks, data quality checks, overview metrics, geolocation analysis, and distribution analysis |
-| `02_analytics` | Core business analysis by theme: performance, customer behaviour, RFM, cohort retention, seller performance, product intelligence, and upcoming review/logistics/payment work |
-| `03_reports` | Final report-layer SQL outputs for business-ready summary tables |
-| `04_validation` | Cross-check and reconciliation logic to verify core numbers |
-| `data` | Source flat files and supporting data assets |
-| `graph_materials/csv` | Exported CSV files used as inputs for charts and downstream reporting |
-| `graph_materials/scripts` | R scripts for EDA, analytics, report, and validation visuals |
-| `notes` | Local project notes and connection notes |
+| Project type | End-to-end business intelligence case study |
+| Dataset | Brazilian E-Commerce Public Dataset by Olist |
+| Scale | 100k+ orders, 9 source tables |
+| Time period | September 2016 to October 2018 |
+| Core tools | SQL Server, T-SQL, R, ggplot2 |
+| Delivery layer | Excel and Power BI |
+| Business focus | Growth, retention, concentration, seller quality, product mix, operations |
+| Current phase | Advanced analytics complete for major modules; reporting and dashboard layer in progress |
 
----
+## Snapshot
+
+| Metric | Current value |
+|---|---:|
+| Total orders | 99,441 |
+| Unique customers | 96,096 |
+| Sellers | 3,095 |
+| Products | 32,951 |
+| Products sold | 32,216 |
+| Product categories | 73 |
+| Delivered GMV | 15.42M |
+| Estimated platform revenue @ 20% | 3.08M |
+| Average order value | 159.86 |
+| Average review score | 4.09 / 5 |
+| Average delivery time | 12 days |
+| Median delivery time | 10 days |
+| Freight as % of GMV | 14.25% |
+
+## Project Workflow
+
+```mermaid
+flowchart LR
+    A["Raw Olist CSV tables"] --> B["SQL Server ingestion"]
+    B --> C["EDA and data quality checks"]
+    C --> D["Business analysis modules"]
+    D --> E["CSV exports for chart/report inputs"]
+    E --> F["R visuals for exploration and validation"]
+    E --> G["Excel reporting pack"]
+    E --> H["Power BI dashboard"]
+```
+
+## What This Project Actually Shows
+
+| Capability | How it is demonstrated here |
+|---|---|
+| SQL depth | Complex joins, temp tables, window functions, segmentation, cohort logic, concentration analysis |
+| Business thinking | Questions framed around what Olist can influence as the marketplace operator |
+| Data quality discipline | Null checks, duplicates, invalid values, sequencing checks, inferred referential integrity |
+| Analytical storytelling | Findings interpreted in business language rather than left as raw query output |
+| Reporting readiness | SQL outputs structured for R, Excel, and Power BI consumption |
+
+## Tech Stack
+
+| Tool | Role in project | Status |
+|---|---|---|
+| SQL Server / T-SQL | Core analysis, metric definitions, data quality checks, reporting logic | Active |
+| R / ggplot2 | Exploratory visuals, distribution charts, analytical support graphics | Active |
+| Excel | Analyst-friendly report pack, pivot summaries, last-mile review layer | Being added |
+| Power BI | Stakeholder dashboard and interactive presentation layer | Being added |
+| Git / GitHub | Version control and project publishing | Active |
+
+## Business Questions
+
+| Theme | Questions answered |
+|---|---|
+| Business performance | Monthly orders, revenue, AOV, strongest/weakest months, new vs repeat mix, revenue concentration |
+| Customer behaviour | Orders per customer, one-time vs repeat share, second-order gap, spend and item comparison |
+| RFM segmentation | Recency, frequency, monetary scoring, segment mix, segment revenue contribution, churn-risk groups |
+| Cohort retention | Return rates by cohort, retention drop-off, strongest cohorts, cohort revenue over time |
+| Seller performance | Top sellers, concentration, review quality, delivery performance, growth vs decline |
+| Product intelligence | Top products and categories, sales concentration, high-volume vs high-value products, repeat demand |
+| Remaining modules | Review patterns, logistics quality, payment behaviour, validation, report tables |
+
+## Progress Tracker
+
+| Module | Status | Main output |
+|---|---|---|
+| `01_eda/01_database_exploration.sql` | Done | table structure, grains, date ranges, relationship map |
+| `01_eda/02_data_quality.sql` | Done | nulls, duplicates, negative/zero checks, sequencing, integrity checks |
+| `01_eda/03_overview_metrics.sql` | Done | platform scale, GMV, AOV, delivery, reviews, freight |
+| `01_eda/04_geolocation_exploration.sql` | Done | geographic coverage and cross-region flow |
+| `01_eda/05_distribution_exploration.sql` | Done | order value, freight ratio, delivery, review, calendar distributions |
+| `02_analytics/01_business_performance.sql` | Done | trends, new vs repeat mix, revenue concentration |
+| `02_analytics/02_customer_behaviour.sql` | Done | one-time vs repeat, second-order lag, spending pattern |
+| `02_analytics/03_rfm_analysis.sql` | Done | customer segmentation |
+| `02_analytics/04_cohort_analysis.sql` | Done | retention and cohort revenue |
+| `02_analytics/05_seller_performance.sql` | Done | seller ranking and trend analysis |
+| `02_analytics/06_product_intelligence.sql` | Done | product/category concentration and growth |
+| `02_analytics/07_review_patterns.sql` | In progress | upcoming |
+| `02_analytics/08_logistics_quality.sql` | In progress | upcoming |
+| `02_analytics/09_payment_behaviour.sql` | In progress | upcoming |
+| `03_reports/*` | Planned | business-ready report tables |
+| `04_validation/cross_checks.sql` | Planned | metric reconciliation |
+
+## Key Findings So Far
+
+| Area | Takeaway |
+|---|---|
+| Retention | Olist appears much stronger at acquisition than repeat purchase retention |
+| Customer mix | About 97% of customers purchase only once; repeat behaviour is limited |
+| Repeat timing | When customers do come back, the median time to second order is about 29 days |
+| Revenue concentration | Top 20% of customers drive about 53.5% of GMV |
+| Seller concentration | Top 20% of sellers drive about 82% of GMV, indicating very high dependence on a small seller base |
+| Product concentration | Top 20% of products drive about 73% of GMV |
+| Geography | Supply and demand are both heavily concentrated in Sao Paulo |
+| Fulfillment | About 63% of item units move across regions rather than within the same state |
+| Marketplace shape | Top categories are more stable growth engines than individual top products |
+
+## Key Assumptions
+
+| Topic | Decision used in this project |
+|---|---|
+| Perspective | Marketplace operator view: what Olist can influence, incentivize, or act upon |
+| GMV definition | Total delivered `payment_value`, inclusive of freight |
+| Revenue term | `GMV` and `revenue` are used interchangeably in this repo unless otherwise stated |
+| Commission rate | 20% midpoint assumption based on public descriptions of Olist fee structure |
+| Scope | Core performance analysis focuses on confirmed and delivered orders |
+| Customer key | `customer_unique_id` is treated as the real customer identifier |
+
+## Repo Map
+
+```text
+olist-sql-business-intelligence/
+|-- 01_eda/
+|   |-- 01_database_exploration.sql
+|   |-- 02_data_quality.sql
+|   |-- 03_overview_metrics.sql
+|   |-- 04_geolocation_exploration.sql
+|   `-- 05_distribution_exploration.sql
+|-- 02_analytics/
+|   |-- 01_business_performance.sql
+|   |-- 02_customer_behaviour.sql
+|   |-- 03_rfm_analysis.sql
+|   |-- 04_cohort_analysis.sql
+|   |-- 05_seller_performance.sql
+|   |-- 06_product_intelligence.sql
+|   |-- 07_review_patterns.sql
+|   |-- 08_logistics_quality.sql
+|   `-- 09_payment_behaviour.sql
+|-- 03_reports/
+|-- 04_validation/
+|-- data/
+|-- graph_materials/
+|   |-- csv/
+|   `-- scripts/
+|-- notes/
+`-- README.md
+```
+
+## Example Analytical Pattern
+
+```sql
+WITH order_value AS (
+    SELECT
+        o.order_id,
+        DATETRUNC(month, o.order_purchase_timestamp) AS month_year,
+        SUM(p.payment_value) AS order_value
+    FROM orders o
+    INNER JOIN order_payments p
+        ON o.order_id = p.order_id
+    WHERE LOWER(o.order_status) = 'delivered'
+    GROUP BY
+        o.order_id,
+        DATETRUNC(month, o.order_purchase_timestamp)
+)
+SELECT
+    month_year,
+    COUNT(*) AS total_orders,
+    SUM(order_value) AS month_revenue,
+    AVG(order_value) AS month_average_order_value
+FROM order_value
+GROUP BY month_year
+ORDER BY month_year;
+```
+
+This is the general style used across the project: define a business question, build a clean intermediate dataset, aggregate to decision-friendly metrics, then export selected outputs for reporting.
 
 ## Reporting Layer
 
-The project is being extended beyond pure SQL analysis into business-facing delivery.
+The project is intentionally moving beyond query output into business delivery.
 
-### Excel
-Planned use:
-- analyst-friendly report tables
-- pivot-based summary views
-- quick review packs for stakeholders
-- last-mile validation and business review outputs
+| Layer | Purpose | Why it matters |
+|---|---|---|
+| R | Exploratory and statistical visuals | Useful during analysis and validation |
+| Excel | Working report pack, pivots, one-off reviews, shareable tables | Common analyst last-mile tool |
+| Power BI | Interactive dashboard for non-technical stakeholders | Best fit for meetings, KPI tracking, and business consumption |
 
-### Power BI
-Planned use:
-- executive overview dashboard
-- customer retention and segmentation dashboard
-- seller and product performance dashboard
-- operational quality dashboard
+The goal is not to duplicate every R chart in Power BI.
 
-This helps position the project as a realistic end-to-end analytics case rather than a query-only repository.
+```text
+SQL = analytical engine
+R = exploratory / analytical support
+Excel = analyst-facing working pack
+Power BI = stakeholder-facing presentation layer
+```
 
----
+## Why This Project Is Stronger Than A Query-Only Portfolio Piece
 
-## Why This Project Is Different
-- It starts with data structure and quality instead of jumping straight into charts
-- It documents assumptions explicitly before calculating business metrics
-- It focuses on business interpretation, not only technical correctness
-- It separates analytical logic, reporting outputs, and visualization layers
-- It is being built toward the same workflow many real analyst roles use: SQL -> analysis -> reporting -> dashboard delivery
-
----
+- Starts with structure and data quality before jumping into insight claims
+- Uses business questions to drive analysis rather than random KPI dumping
+- Separates analysis, exports, charting, reporting, and dashboard delivery
+- Shows both technical depth and the ability to package findings for business users
+- Mirrors a realistic analyst workflow instead of a one-file notebook exercise
 
 ## Next Steps
-- Complete review patterns, logistics quality, and payment behaviour analyses
-- Populate `03_reports` with finalized report tables
-- Build `04_validation/cross_checks.sql`
-- Add Excel-based reporting outputs
-- Add Power BI dashboard artifacts and screenshots
-- Expand the findings section once the remaining themes are complete
 
----
+| Priority | Planned work |
+|---|---|
+| High | Finish review patterns, logistics quality, and payment behaviour |
+| High | Populate `03_reports` with final report-layer SQL outputs |
+| High | Build `04_validation/cross_checks.sql` |
+| Medium | Add Excel reporting pack outputs |
+| Medium | Build Power BI dashboard and add screenshots |
+| Medium | Expand final findings section once remaining modules are completed |
 
 ## References
-- Olist. (n.d.). *Comissão e frete: As 3 regras que você precisa saber.* https://blog.olist.com/3-regras-comissao-e-frete-olist/
-- Bling Blog. (2022, March 7). *Nova regra de comissão e frete do Olist.* https://blog.bling.com.br/nova-regra-de-comissao-e-frete-do-olist-como-funciona-e-quais-sao-as-vantagens/
+
+- Olist. (n.d.). *Comissao e frete: As 3 regras que voce precisa saber.* https://blog.olist.com/3-regras-comissao-e-frete-olist/
+- Bling Blog. (2022, March 7). *Nova regra de comissao e frete do Olist.* https://blog.bling.com.br/nova-regra-de-comissao-e-frete-do-olist-como-funciona-e-quais-sao-as-vantagens/
 - Chen, D., Sakia, S., & Olist. (2018). *Brazilian E-Commerce Public Dataset by Olist* [Dataset]. Kaggle. https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce
 
----
-
 ## Author
+
 Nguyen Duong  
-[GitHub](https://github.com/steven2512) · [LinkedIn](https://www.linkedin.com/in/nguyenduong251202/)
+[GitHub](https://github.com/steven2512) | [LinkedIn](https://www.linkedin.com/in/nguyenduong251202/)
