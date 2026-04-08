@@ -2,6 +2,40 @@
 
 > End-to-end marketplace analytics project built on real Olist e-commerce data using SQL as the analytical engine, R as the exploratory visualization layer, and Excel / Power BI as the business-facing reporting layer.
 
+## Table Of Contents
+
+- [Overview](#overview)
+- [At A Glance](#at-a-glance)
+- [Snapshot](#snapshot)
+- [Project Workflow](#project-workflow)
+- [What This Project Actually Shows](#what-this-project-actually-shows)
+- [Tech Stack](#tech-stack)
+- [Business Questions](#business-questions)
+- [Progress Tracker](#progress-tracker)
+- [Key Findings So Far](#key-findings-so-far)
+- [Key Assumptions](#key-assumptions)
+- [Repo Map](#repo-map)
+- [Example Analytical Pattern](#example-analytical-pattern)
+- [Reporting Layer](#reporting-layer)
+- [Why This Project Is Stronger Than A Query-Only Portfolio Piece](#why-this-project-is-stronger-than-a-query-only-portfolio-piece)
+- [Next Steps](#next-steps)
+- [References](#references)
+
+## Overview
+
+This project analyzes Olist as a marketplace business, not just as a raw e-commerce dataset. The work starts with data structure and quality checks, moves into customer, seller, product, retention, and performance analysis in SQL, then pushes selected outputs into reporting layers that are easier for stakeholders to consume.
+
+The technical idea is simple:
+
+```text
+SQL -> core business logic
+R -> exploratory and analytical visuals
+Excel -> analyst-facing reporting pack
+Power BI -> stakeholder-facing dashboard
+```
+
+The portfolio value of this project is that it shows both sides of analytics work: deep query-based analysis and the ability to package findings into a business-ready format.
+
 ## At A Glance
 
 | Item | Details |
