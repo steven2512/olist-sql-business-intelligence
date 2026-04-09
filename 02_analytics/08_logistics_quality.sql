@@ -87,3 +87,64 @@ GROUP BY t.seller_id
 HAVING COUNT(*) > 10
 ORDER BY delivery_time DESC
 
+SELECT TOP 10
+    t.product_category_name,
+    AVG(CAST(DATEDIFF(day, order_purchase_timestamp, order_delivered_customer_date) AS FLOAT)) AS avg_delivery_time
+FROM orders o
+INNER JOIN (
+    SELECT DISTINCT
+        i.order_id,
+        COALESCE(p.product_category_name, 'unknown') AS product_category_name
+    FROM products p
+    INNER JOIN order_items i
+        ON p.product_id = i.product_id
+) t
+    ON o.order_id = t.order_id
+WHERE LOWER(o.order_status) = 'delivered'
+  AND o.order_delivered_customer_date IS NOT NULL
+GROUP BY t.product_category_name
+ORDER BY avg_delivery_time DESC;
+
+
+USE Olist;
+DROP TABLE IF EXISTS #zip_code_and_state;
+
+WITH zip_state_counts AS (
+    SELECT
+        geolocation_zip_code_prefix,
+        geolocation_state,
+        COUNT(*) AS total
+    FROM geolocation
+    GROUP BY
+        geolocation_zip_code_prefix,
+        geolocation_state
+),
+zip_state_ranked AS (
+    SELECT
+        geolocation_zip_code_prefix,
+        geolocation_state,
+        ROW_NUMBER() OVER (
+            PARTITION BY geolocation_zip_code_prefix
+            ORDER BY total DESC, geolocation_state
+        ) AS rn
+    FROM zip_state_counts
+)
+SELECT
+    geolocation_zip_code_prefix,
+    geolocation_state
+INTO #zip_code_and_state
+FROM zip_state_ranked
+WHERE rn = 1;
+
+
+SELECT
+    z.geolocation_state,
+    AVG(DATEDIFF(day, order_purchase_timestamp, order_delivered_customer_date)) AS avg_delivery_time
+FROM customers c  
+INNER JOIN orders o  
+ON c.customer_id = o.customer_id
+INNER JOIN #zip_code_and_state z
+ON c.customer_zip_code_prefix = z.geolocation_zip_code_prefix
+GROUP BY z.geolocation_state
+ORDER BY avg_delivery_time DESC
+
