@@ -67,6 +67,9 @@ GROUP BY CASE WHEN DATEDIFF(day, order_estimated_delivery_date, order_delivered_
             ELSE 'early' END
 
 -- ~92% of orders are early, 1% is on time, and ~7% is late
+-- Olist is generally beating its promised delivery window, with 91.89% of orders arriving early and only 6.77% arriving late.
+-- Exact on-time delivery is rare at only 1.34%, suggesting the logistics system tends to deliver either comfortably before the estimate or noticeably after it, rather than clustering exactly on the promised date.
+-- Overall, the estimated delivery dates appear to be conservative more often than not.
 
 -- Which sellers, product groups, or regions have the longest delivery times?
 -- sellers
@@ -87,6 +90,9 @@ GROUP BY t.seller_id
 HAVING COUNT(*) > 10
 ORDER BY delivery_time DESC
 
+-- seller-level delivery time varies a lot, with the slowest sellers averaging roughly 26 - 37 days per order, far above the overall average of 12.5 days.
+-- This suggests some seller-specific logistics or fulfillment issues are severe enough to materially slow delivery beyond the marketplace baseline.
+
 SELECT TOP 10
     t.product_category_name,
     AVG(CAST(DATEDIFF(day, order_purchase_timestamp, order_delivered_customer_date) AS FLOAT)) AS avg_delivery_time
@@ -104,6 +110,10 @@ WHERE LOWER(o.order_status) = 'delivered'
   AND o.order_delivered_customer_date IS NOT NULL
 GROUP BY t.product_category_name
 ORDER BY avg_delivery_time DESC;
+
+-- moveis_escritorio stands out clearly as the slowest product group at about 20.59 days, which is substantially above the overall delivery average.
+-- furniture-related categories appear repeatedly near the top, such as moveis_colchao_e_estofado and moveis_sala, suggesting bulky or harder-to-handle product groups face systematically slower delivery.
+-- Outside furniture, some fashion-related and niche categories also run slower, but not nearly as extremely as the weakest furniture groups.
 
 
 USE Olist;
@@ -147,4 +157,62 @@ INNER JOIN #zip_code_and_state z
 ON c.customer_zip_code_prefix = z.geolocation_zip_code_prefix
 GROUP BY z.geolocation_state
 ORDER BY avg_delivery_time DESC
+
+-- the slowest customer regions are heavily concentrated in the North and Northeast, with RR, AP, and AM averaging roughly 29, 27, and 26 days respectively.
+-- These states take around double the overall average delivery time, suggesting geography is a major constraint in logistics performance.
+-- This fits the earlier geolocation findings where demand and seller supply are concentrated elsewhere, making longer-distance fulfillment more likely for these regions.
+
+-- Where in the fulfillment timeline do the biggest delays occur?
+SELECT
+    order_id,
+    CAST(DATEDIFF(hour, order_approved_at, order_delivered_carrier_date) AS FLOAT) / DATEDIFF(hour, order_purchase_timestamp, order_delivered_customer_date)  AS diff_approved_carier_prop,
+    CAST(DATEDIFF(hour, order_delivered_carrier_date, order_delivered_customer_date) AS FLOAT) / DATEDIFF(hour, order_purchase_timestamp, order_delivered_customer_date)   AS diff_carier_customer_prop,
+    CAST(DATEDIFF(day, order_purchase_timestamp, order_delivered_customer_date) AS FLOAT) AS delivery_days
+FROM
+orders
+ORDER BY DATEDIFF(hour, order_purchase_timestamp, order_delivered_customer_date) DESC
+--biggest delay is in carrier shipping to customer with some takes up to 99%+ of the total delivery time
+
+-- Are longer delivery times associated with weaker reviews or repeat purchase?
+SELECT AVG(CAST(delivery_days AS FLOAT)) AS avg_delivery_days
+FROM (
+SELECT TOP 1000
+    o.order_id,
+    DATEDIFF(day, order_purchase_timestamp, order_delivered_customer_date) AS delivery_days,
+    AVG(CAST(review_score AS FLOAT)) AS avg_rating
+FROM orders o  
+INNER JOIN order_reviews r  
+ON o.order_id = r.order_id
+GROUP BY o.order_id, DATEDIFF(day, order_purchase_timestamp, order_delivered_customer_date)
+ORDER BY avg_rating
+) d
+-- avg delivery days for the 1000 worst reviewed orders is about 20.55, versus only 12 days across all delivered orders overall
+-- in the context of earlier delivery analysis, where the median is 10 days and half of all orders arrive within 7 - 16 days, 20.55 is meaningfully slower
+-- this suggests lower rated orders are associated with delivery delays, though delays are unlikely to be the only cause of weak reviews
+
+WITH customer_orders AS (
+    SELECT
+        c.customer_unique_id,
+        o.order_id,
+        DATEDIFF(day, o.order_purchase_timestamp, o.order_delivered_customer_date) AS delivery_days
+    FROM customers c
+    INNER JOIN orders o
+        ON c.customer_id = o.customer_id
+    WHERE LOWER(o.order_status) = 'delivered'
+      AND o.order_delivered_customer_date IS NOT NULL
+),
+customer_order_counts AS (
+    SELECT
+        customer_unique_id,
+        COUNT(DISTINCT order_id) AS total_orders
+    FROM customer_orders
+    GROUP BY customer_unique_id
+)
+SELECT
+    CASE WHEN c.total_orders = 1 THEN 'One-time' ELSE 'Repeat' END AS customer_type,
+    AVG(CAST(o.delivery_days AS FLOAT)) AS avg_delivery_days
+FROM customer_orders o
+INNER JOIN customer_order_counts c
+    ON o.customer_unique_id = c.customer_unique_id
+GROUP BY CASE WHEN c.total_orders = 1 THEN 'One-time' ELSE 'Repeat' END;
 
