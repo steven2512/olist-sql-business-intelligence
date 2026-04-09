@@ -68,3 +68,22 @@ GROUP BY CASE WHEN DATEDIFF(day, order_estimated_delivery_date, order_delivered_
 
 -- ~92% of orders are early, 1% is on time, and ~7% is late
 
+-- Which sellers, product groups, or regions have the longest delivery times?
+-- sellers
+SELECT TOP 10
+    t.seller_id,
+    AVG(DATEDIFF(day, order_purchase_timestamp, order_delivered_customer_date)) AS delivery_time
+FROM orders o  
+INNER JOIN (
+    SELECT DISTINCT  
+        i.order_id,
+        s.seller_id
+    FROM order_items i  
+    INNER JOIN sellers s  
+    ON i.seller_id = s.seller_id
+) t
+ON o.order_id = t.order_id
+GROUP BY t.seller_id
+HAVING COUNT(*) > 10
+ORDER BY delivery_time DESC
+
