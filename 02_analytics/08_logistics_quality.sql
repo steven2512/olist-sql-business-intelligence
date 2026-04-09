@@ -219,3 +219,7 @@ INNER JOIN customer_order_counts c
     ON o.customer_unique_id = c.customer_unique_id
 GROUP BY CASE WHEN c.total_orders = 1 THEN 'One-time' ELSE 'Repeat' END;
 
+-- repeat customers have a slightly lower average delivery time than one-time customers (12.23 vs 12.51 days)
+-- however, the gap is extremely small in practical terms, so delivery speed alone does not appear to strongly separate repeat from one-time purchase behaviour
+-- taken together, longer delivery times seem much more clearly associated with weaker reviews than with weaker repeat purchase
+
