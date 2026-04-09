@@ -126,7 +126,6 @@ SELECT
 INTO #rfm_segment
 FROM #rfm_score;
 
-
 SELECT
     segment,
     COUNT(*) AS total_customers,
