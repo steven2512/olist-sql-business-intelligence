@@ -139,7 +139,26 @@ ORDER BY avg_rating
 -- this suggests lower rated orders are associated with delivery delays, though delays are unlikely to be the only cause of weak reviews
 
 -- Q4. Do repeat customers review differently from one-time customers?
--- pending
+SELECT
+    CASE WHEN total_orders = 1 THEN 1 ELSE 0 END AS one_time_flag,
+    AVG(avg_rating) AS avg_rating
+FROM (
+    SELECT
+        customer_unique_id,
+        COUNT(DISTINCT o.order_id) AS total_orders,
+        AVG(CAST(review_score AS FLOAT)) AS avg_rating
+    FROM customers c  
+    INNER JOIN orders o
+    ON c.customer_id = o.customer_id
+    INNER JOIN order_reviews r  
+    ON o.order_id = r.order_id
+    GROUP BY customer_unique_id
+) t
+GROUP BY CASE WHEN total_orders = 1 THEN 1 ELSE 0 END
+
+-- repeating customers have a slightly higher average review score than one-time customers (4.1177 vs 4.0839)
+-- however, the gap is very small in practical terms, with both groups still rated clearly above 4.0
+-- this suggests review satisfaction does differ slightly by repeat behaviour, but not by enough to say poor reviews alone explain why most customers never return
 
 -- Q5. Which segments have the highest share of poor reviews?
 USE Olist;
