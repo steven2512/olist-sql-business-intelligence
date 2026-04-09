@@ -1,4 +1,5 @@
 USE Olist;
+DROP TABLE IF EXISTS #zip_code_and_state;
 -- 1. Data structure and quality
 SELECT GEOLOCATION_ZIP_CODE_PREFIX,
        GEOLOCATION_LAT,
@@ -26,7 +27,6 @@ FROM geolocation
 -- Grain (actually is): one geographical sample point in a district per row - non unique
 
 -- For the conflicting zip codes -> states situation. Majority voting has been applied
-DROP TABLE IF EXISTS #zip_code_and_state;
 SELECT 
     geolocation_zip_code_prefix,
     geolocation_state

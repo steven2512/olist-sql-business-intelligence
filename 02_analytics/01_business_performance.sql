@@ -1,5 +1,6 @@
 USE Olist;
 DROP TABLE IF EXISTS #MoM_performance;
+DROP TABLE IF EXISTS #revenue_concentration_summary;
 
 -- Q1: How are orders, revenue, and average order value trending over time?
 
@@ -151,8 +152,6 @@ ON m.month_year = t.month_day
 -- However, an interesting shift happened in Sep 2018 where repeating customer proportion suddenly skyrockected to above 64%, then the following month (Oct 2018), repeating customers' purchases went to 75%\
 
 -- How concentrated is total revenue across customers, sellers, and products?
-DROP TABLE IF EXISTS #revenue_concentration_summary;
-
 WITH customer_revenue AS (
     SELECT 
         SUM(payment_value) AS total,
