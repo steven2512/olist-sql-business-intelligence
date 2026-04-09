@@ -172,6 +172,9 @@ FROM
 orders
 ORDER BY DATEDIFF(hour, order_purchase_timestamp, order_delivered_customer_date) DESC
 --biggest delay is in carrier shipping to customer with some takes up to 99%+ of the total delivery time
+-- the longest-delayed orders are overwhelmingly dominated by the carrier-to-customer stage, which often takes 93% - 99% of total delivery time.
+-- by comparison, the approved-to-carrier stage is usually very small on these extreme cases, often only a low single-digit share of the total timeline.
+-- this suggests the biggest delivery bottleneck usually happens after the package has already left the seller side, not before carrier handoff.
 
 -- Are longer delivery times associated with weaker reviews or repeat purchase?
 SELECT AVG(CAST(delivery_days AS FLOAT)) AS avg_delivery_days
