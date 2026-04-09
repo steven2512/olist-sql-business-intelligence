@@ -1,3 +1,4 @@
+-- Q1. How are review scores distributed across orders?
 WITH base AS (
     SELECT CAST(review_score AS FLOAT) AS val
     FROM order_reviews
@@ -50,6 +51,7 @@ CROSS JOIN skewness sk;
 -- spread: reviews range from 1 - 5 stars, however, 50% of reviews are either 4 or 5 stars (IQR: 1)
 -- visual summary: overall, histogram shows highly rated reviews dominate, box plot also confirms dense cluster at higher rated reviews, with occasional lower negative reviews, most clearly seen by a sharp drop from 5 -> 4 stars then maintain a smaller but meaninful level at lower ratings.
 
+-- Q2. Which sellers, products, or categories receive the lowest review scores?
 USE Olist;
 SELECT TOP 10
     t.seller_id,
@@ -68,6 +70,10 @@ GROUP BY t.seller_id
 HAVING COUNT(DISTINCT t.order_id) > 10
 ORDER BY avg_rating
 
+-- weakest sellers can be very poorly rated, with the bottom averages at roughly 1.26, 1.72, and 2.10
+-- however, most of those extreme lows come from relatively small bases around 11 - 20 orders, so some volatility is expected
+-- seller 1ca707... is more meaningful, with 114 orders and only 2.33 average rating, suggesting some seller-level quality problems are real rather than just noise
+
 -- products
 SELECT TOP 10
     t.product_id,
@@ -85,6 +91,10 @@ ON t.order_id = r.order_id
 GROUP BY t.product_id
 HAVING COUNT(DISTINCT t.order_id) > 10
 ORDER BY avg_rating
+
+-- weak products are even more extreme than weak sellers, with the bottom products averaging as low as roughly 1.18 and 1.61
+-- while some of the worst cases still have small sample sizes, a few products with 28, 43, and 61 reviewed orders remain near or below the low-2 range
+-- this suggests poor reviews are not only random order-level noise; some products likely have recurring quality or expectation issues
 
 --
 
@@ -106,6 +116,12 @@ GROUP BY t.product_category_name
 HAVING COUNT(DISTINCT t.order_id) > 10
 ORDER BY avg_rating
 
+-- category-level ratings are much less extreme, which makes sense since category averages smooth out volatile individual SKU behaviour
+-- the weakest category is portateis_cozinha_e_preparadores_de_alimentos at about 3.43, though with only 14 orders it should be interpreted cautiously
+-- more meaningful is moveis_escritorio, which averages only about 3.60 across 1263 orders, making it the clearest large-scale weak category
+-- other weaker categories such as audio and casa_conforto also stay below the broader 4.09 marketplace average, suggesting dissatisfaction clusters by product group rather than being fully random
+
+-- Q3. Are lower review scores associated with delivery delays?
 SELECT AVG(CAST(delivery_days AS FLOAT)) AS avg_delivery_days
 FROM (
 SELECT TOP 1000
@@ -118,8 +134,14 @@ ON o.order_id = r.order_id
 GROUP BY o.order_id, DATEDIFF(day, order_purchase_timestamp, order_delivered_customer_date)
 ORDER BY avg_rating
 ) d
--- avg_delivery_days for top 1000 worst reviewed orders are 20, while the average delivery days of all orders is 12. So lower rated orders appears to be associated with delivery delays
+-- avg delivery days for the 1000 worst reviewed orders is about 20.55, versus only 12 days across all delivered orders overall
+-- in the context of earlier delivery analysis, where the median is 10 days and half of all orders arrive within 7 - 16 days, 20.55 is meaningfully slower
+-- this suggests lower rated orders are associated with delivery delays, though delays are unlikely to be the only cause of weak reviews
 
+-- Q4. Do repeat customers review differently from one-time customers?
+-- pending
+
+-- Q5. Which segments have the highest share of poor reviews?
 USE Olist;
 -- 1. Store customer-level RFM metrics and scores
 DROP TABLE IF EXISTS #rfm_score;
@@ -262,4 +284,6 @@ ON o.order_id = r.order_id
 GROUP BY rfm.segment
 ORDER BY avg_review_score
 
--- Needs Attention, loyalists and at risk has lowest average_review_score but it's generally still very high at >4. No segments particularly have low review scores (as noted by avg review of all customers at 4.09)
+-- Needs Attention has the lowest average review score at about 4.02, while Potential / New is the highest at about 4.21
+-- however, every segment still remains above 4.0, so no segment appears to have particularly weak reviews in an absolute sense
+-- this suggests dissatisfaction is more likely tied to specific orders, products, sellers, or delayed deliveries than to broad customer segment type
